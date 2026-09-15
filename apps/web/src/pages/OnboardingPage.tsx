@@ -3,7 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import { ShieldCheck, ArrowRight, ArrowLeft, Camera, Check, UploadCloud, Heart, Sparkles, MapPin, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { useTelegram } from '../hooks/useTelegram.js';
-import { isAtLeast18YearsOld } from '@yaqin/shared';
+import { isAtLeast18YearsOld, UZBEKISTAN_REGIONS, UZBEKISTAN_CITIES_AND_DISTRICTS } from '@yaqin/shared';
+
+const DEFAULT_CITIES = UZBEKISTAN_CITIES_AND_DISTRICTS.map((c) => ({
+  id: c.name,
+  name: c.name,
+  region: c.region,
+}));
+
+const DEFAULT_INTERESTS = [
+  { id: 'Sayohat', name: 'Sayohat', icon: '✈️' },
+  { id: 'Kitob mutolaasi', name: 'Kitob mutolaasi', icon: '📚' },
+  { id: 'Sport & Fitnes', name: 'Sport & Fitnes', icon: '⚽' },
+  { id: 'Kino & Seriallar', name: 'Kino & Seriallar', icon: '🎬' },
+  { id: 'Musiqa', name: 'Musiqa', icon: '🎵' },
+  { id: 'IT & Dasturlash', name: 'IT & Dasturlash', icon: '💻' },
+  { id: 'Sanʼat & Rasm', name: 'Sanʼat & Rasm', icon: '🎨' },
+  { id: 'Pazandachilik', name: 'Pazandachilik', icon: '🍳' },
+  { id: 'Qahvaxonalar', name: 'Qahvaxonalar', icon: '☕' },
+  { id: 'Fotografiya', name: 'Fotografiya', icon: '📸' },
+  { id: 'Moda & Stil', name: 'Moda & Stil', icon: '👗' },
+  { id: 'Biznes & Startap', name: 'Biznes & Startap', icon: '💼' },
+  { id: 'Avtomobillar', name: 'Avtomobillar', icon: '🚗' },
+  { id: 'Til oʻrganish', name: 'Til oʻrganish', icon: '🗣️' },
+  { id: 'Video oʻyinlar', name: 'Video oʻyinlar', icon: '🎮' },
+  { id: 'Tabiat & Togʻ', name: 'Tabiat & Togʻ', icon: '🏔️' },
+];
 
 export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
@@ -20,14 +45,15 @@ export const OnboardingPage: React.FC = () => {
   const [gender, setGender] = useState<'MALE' | 'FEMALE'>('FEMALE');
   const [lookingFor, setLookingFor] = useState<'MALE' | 'FEMALE' | 'ALL'>('MALE');
   const [birthDate, setBirthDate] = useState('2002-01-01');
-  const [cityId, setCityId] = useState('');
+  const [selectedRegion, setSelectedRegion] = useState<string>('Toshkent shahri');
+  const [cityId, setCityId] = useState('Toshkent (Yunusobod)');
   const [bio, setBio] = useState('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
 
   // Config data (shaharlar va qiziqishlar)
-  const [cities, setCities] = useState<{ id: string; name: string; region?: string }[]>([]);
-  const [interests, setInterests] = useState<{ id: string; name: string; icon?: string }[]>([]);
+  const [cities, setCities] = useState(DEFAULT_CITIES);
+  const [interests, setInterests] = useState(DEFAULT_INTERESTS);
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -35,10 +61,11 @@ export const OnboardingPage: React.FC = () => {
         const res = await fetch('/api/profile/config');
         if (res.ok) {
           const data = await res.json();
-          setCities(data.cities || []);
-          setInterests(data.interests || []);
-          if (data.cities?.length > 0) {
-            setCityId(data.cities[0].id);
+          if (data.cities && data.cities.length > 0) {
+            setCities(data.cities);
+          }
+          if (data.interests && data.interests.length > 0) {
+            setInterests(data.interests);
           }
         }
       } catch (e) {
@@ -336,25 +363,45 @@ export const OnboardingPage: React.FC = () => {
 
             <div className="space-y-4 text-left">
               <div>
-                <label className="text-xs font-bold text-[#1E1E28] mb-2 block">
-                  Viloyat / Shahar / Tuman
+                <label className="text-xs font-bold text-[#1E1E28] mb-1.5 block">
+                  1. Viloyat yoki Shahar
+                </label>
+                <select
+                  value={selectedRegion}
+                  onChange={(e) => {
+                    const reg = e.target.value;
+                    setSelectedRegion(reg);
+                    const matching = cities.filter((c) => (c.region || 'Boshqa') === reg);
+                    if (matching.length > 0) {
+                      setCityId(matching[0].id || matching[0].name);
+                    }
+                  }}
+                  className="w-full px-4 py-3.5 rounded-2xl bg-white border border-[#EAE5DC] text-[#1E1E28] font-semibold text-sm focus:outline-none focus:border-[#FF4B6E] shadow-sm cursor-pointer"
+                >
+                  {UZBEKISTAN_REGIONS.map((reg) => (
+                    <option key={reg} value={reg}>
+                      📍 {reg}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-bold text-[#1E1E28] mb-1.5 block">
+                  2. Tuman / Aholi punkti
                 </label>
                 <select
                   value={cityId}
                   onChange={(e) => setCityId(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-2xl bg-white border border-[#EAE5DC] text-[#1E1E28] font-medium text-sm focus:outline-none focus:border-[#FF4B6E] shadow-sm max-h-60"
+                  className="w-full px-4 py-3.5 rounded-2xl bg-white border border-[#EAE5DC] text-[#1E1E28] font-semibold text-sm focus:outline-none focus:border-[#FF4B6E] shadow-sm cursor-pointer"
                 >
-                  {Array.from(new Set(cities.map((c) => c.region || 'Boshqa'))).map((reg) => (
-                    <optgroup key={reg} label={`📍 ${reg}`}>
-                      {cities
-                        .filter((c) => (c.region || 'Boshqa') === reg)
-                        .map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.name}
-                          </option>
-                        ))}
-                    </optgroup>
-                  ))}
+                  {cities
+                    .filter((c) => (c.region || 'Boshqa') === selectedRegion)
+                    .map((c) => (
+                      <option key={c.id || c.name} value={c.id || c.name}>
+                        {c.name}
+                      </option>
+                    ))}
                 </select>
               </div>
 

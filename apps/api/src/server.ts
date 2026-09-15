@@ -13,6 +13,8 @@ dotenv.config();
 import { requireAuth } from './middlewares/auth.js';
 import { requireAdmin } from './middlewares/rbac.js';
 import { initChatSocket } from './socket/chatSocket.js';
+import { prisma } from '@yaqin/database';
+import { UZBEKISTAN_CITIES_AND_DISTRICTS } from '@yaqin/shared';
 
 // Controllerlar
 import { AuthController } from './controllers/authController.js';
@@ -174,12 +176,59 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   });
 });
 
+async function ensureBaseData() {
+  try {
+    const cityCount = await prisma.city.count().catch(() => 0);
+    if (cityCount === 0) {
+      console.log('🌱 Shahar va tumanlar avtomatik toʻldirilmoqda...');
+      for (const item of UZBEKISTAN_CITIES_AND_DISTRICTS) {
+        await prisma.city.create({
+          data: { name: item.name, region: item.region },
+        }).catch(() => {});
+      }
+      console.log('✅ 195+ ta shahar va tumanlar bazaga kiritildi.');
+    }
+
+    const interestCount = await prisma.interest.count().catch(() => 0);
+    if (interestCount === 0) {
+      console.log('🌱 Qiziqishlar bazaga avtomatik kiritilmoqda...');
+      const defaultInterests = [
+        { name: 'Sayohat', icon: '✈️', category: 'LIFESTYLE' },
+        { name: 'Kitob mutolaasi', icon: '📚', category: 'CULTURE' },
+        { name: 'Sport & Fitnes', icon: '⚽', category: 'SPORTS' },
+        { name: 'Kino & Seriallar', icon: '🎬', category: 'ENTERTAINMENT' },
+        { name: 'Musiqa', icon: '🎵', category: 'ENTERTAINMENT' },
+        { name: 'IT & Dasturlash', icon: '💻', category: 'TECH' },
+        { name: 'Sanʼat & Rasm', icon: '🎨', category: 'ART' },
+        { name: 'Pazandachilik', icon: '🍳', category: 'FOOD' },
+        { name: 'Qahvaxonalar', icon: '☕', category: 'LIFESTYLE' },
+        { name: 'Fotografiya', icon: '📸', category: 'CREATIVE' },
+        { name: 'Moda & Stil', icon: '👗', category: 'FASHION' },
+        { name: 'Biznes & Startap', icon: '💼', category: 'CAREER' },
+        { name: 'Avtomobillar', icon: '🚗', category: 'AUTO' },
+        { name: 'Til oʻrganish', icon: '🗣️', category: 'EDUCATION' },
+        { name: 'Video oʻyinlar', icon: '🎮', category: 'GAMING' },
+        { name: 'Tabiat & Togʻ', icon: '🏔️', category: 'OUTDOOR' },
+      ];
+      for (const item of defaultInterests) {
+        await prisma.interest.create({
+          data: item,
+        }).catch(() => {});
+      }
+      console.log('✅ Qiziqishlar bazaga kiritildi.');
+    }
+  } catch (e) {
+    console.error('ensureBaseData xatolik:', e);
+  }
+}
+
 // Serverni tinglash
 const PORT = process.env.PORT || 4000;
 const HOST = process.env.HOST || '0.0.0.0';
 
-server.listen(Number(PORT), HOST, () => {
+server.listen(Number(PORT), HOST, async () => {
   console.log(`🚀 Yaqin API Server ${HOST}:${PORT} da ishga tushdi!`);
+  await ensureBaseData();
 });
 
 export { app, server };

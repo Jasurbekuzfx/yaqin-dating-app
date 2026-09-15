@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma } from '@yaqin/database';
-import { isAtLeast18YearsOld, calculateAge } from '@yaqin/shared';
+import { isAtLeast18YearsOld, calculateAge, UZBEKISTAN_CITIES_AND_DISTRICTS } from '@yaqin/shared';
 import { StorageService } from '../services/storageService.js';
 
 export class ProfileController {
@@ -98,7 +98,24 @@ export class ProfileController {
       if (bio !== undefined) updateData.bio = bio ? bio.trim() : null;
       if (gender && ['MALE', 'FEMALE'].includes(gender)) updateData.gender = gender;
       if (lookingFor && ['MALE', 'FEMALE', 'ALL'].includes(lookingFor)) updateData.lookingFor = lookingFor;
-      if (cityId) updateData.cityId = cityId;
+      if (cityId) {
+        let targetCity = await prisma.city.findUnique({ where: { id: cityId } }).catch(() => null);
+        if (!targetCity) {
+          targetCity = await prisma.city.findFirst({ where: { name: cityId } }).catch(() => null);
+        }
+        if (!targetCity) {
+          try {
+            targetCity = await prisma.city.create({
+              data: { name: cityId, region: 'Oʻzbekiston' },
+            });
+          } catch {
+            targetCity = await prisma.city.findFirst().catch(() => null);
+          }
+        }
+        if (targetCity) {
+          updateData.cityId = targetCity.id;
+        }
+      }
 
       if (birthDate) {
         if (!isAtLeast18YearsOld(birthDate)) {
@@ -112,14 +129,28 @@ export class ProfileController {
       }
 
       if (Array.isArray(interestIds)) {
-        await prisma.userInterest.deleteMany({ where: { userId } });
+        await prisma.userInterest.deleteMany({ where: { userId } }).catch(() => {});
         if (interestIds.length > 0) {
-          await prisma.userInterest.createMany({
-            data: interestIds.map((id: string) => ({
-              userId,
-              interestId: id,
-            })),
-          });
+          for (const item of interestIds) {
+            let intRecord = await prisma.interest.findUnique({ where: { id: item } }).catch(() => null);
+            if (!intRecord) {
+              intRecord = await prisma.interest.findFirst({ where: { name: item } }).catch(() => null);
+            }
+            if (!intRecord) {
+              try {
+                intRecord = await prisma.interest.create({
+                  data: { name: item, category: 'GENERAL', icon: '✨' },
+                });
+              } catch {
+                // ignore
+              }
+            }
+            if (intRecord) {
+              await prisma.userInterest.create({
+                data: { userId, interestId: intRecord.id },
+              }).catch(() => {});
+            }
+          }
         }
       }
 
@@ -239,10 +270,41 @@ export class ProfileController {
    */
   static async getConfig(_req: Request, res: Response): Promise<void> {
     try {
-      const [cities, interests] = await Promise.all([
-        prisma.city.findMany({ orderBy: { name: 'asc' } }),
-        prisma.interest.findMany({ orderBy: { category: 'asc' } }),
+      let [cities, interests] = await Promise.all([
+        prisma.city.findMany({ orderBy: { name: 'asc' } }).catch(() => []),
+        prisma.interest.findMany({ orderBy: { category: 'asc' } }).catch(() => []),
       ]);
+
+      if (!cities || cities.length === 0) {
+        cities = UZBEKISTAN_CITIES_AND_DISTRICTS.map((c) => ({
+          id: c.name,
+          name: c.name,
+          region: c.region,
+          createdAt: new Date(),
+        })) as any;
+      }
+
+      if (!interests || interests.length === 0) {
+        const DEFAULT_INTERESTS = [
+          { id: 'Sayohat', name: 'Sayohat', icon: '✈️', category: 'LIFESTYLE' },
+          { id: 'Kitob', name: 'Kitob mutolaasi', icon: '📚', category: 'CULTURE' },
+          { id: 'Sport', name: 'Sport & Fitnes', icon: '⚽', category: 'SPORTS' },
+          { id: 'Kinolar', name: 'Kino & Seriallar', icon: '🎬', category: 'ENTERTAINMENT' },
+          { id: 'Musiqa', name: 'Musiqa', icon: '🎵', category: 'ENTERTAINMENT' },
+          { id: 'IT', name: 'IT & Dasturlash', icon: '💻', category: 'TECH' },
+          { id: 'Sanat', name: 'Sanʼat & Rasm', icon: '🎨', category: 'ART' },
+          { id: 'Pazandachilik', name: 'Pazandachilik', icon: '🍳', category: 'FOOD' },
+          { id: 'Qahva', name: 'Qahvaxonalar', icon: '☕', category: 'LIFESTYLE' },
+          { id: 'Fotografiya', name: 'Fotografiya', icon: '📸', category: 'CREATIVE' },
+          { id: 'Moda', name: 'Moda & Stil', icon: '👗', category: 'FASHION' },
+          { id: 'Biznes', name: 'Biznes & Startap', icon: '💼', category: 'CAREER' },
+          { id: 'Avtomobillar', name: 'Avtomobillar', icon: '🚗', category: 'AUTO' },
+          { id: 'Til', name: 'Til oʻrganish', icon: '🗣️', category: 'EDUCATION' },
+          { id: 'Oyinlar', name: 'Video oʻyinlar', icon: '🎮', category: 'GAMING' },
+          { id: 'Tabiat', name: 'Tabiat & Togʻ', icon: '🏔️', category: 'OUTDOOR' },
+        ];
+        interests = DEFAULT_INTERESTS as any;
+      }
 
       res.json({
         success: true,

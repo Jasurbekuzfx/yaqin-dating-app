@@ -5,6 +5,8 @@ import { useAuth } from '../context/AuthContext.js';
 import { useTelegram } from '../hooks/useTelegram.js';
 import { isAtLeast18YearsOld, UZBEKISTAN_REGIONS, UZBEKISTAN_CITIES_AND_DISTRICTS } from '@yaqin/shared';
 
+import { apiFetch, getImageUrl } from '../utils/api.js';
+
 const DEFAULT_CITIES = UZBEKISTAN_CITIES_AND_DISTRICTS.map((c) => ({
   id: c.name,
   name: c.name,
@@ -58,7 +60,7 @@ export const OnboardingPage: React.FC = () => {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const res = await fetch('/api/profile/config');
+        const res = await apiFetch('/api/profile/config');
         if (res.ok) {
           const data = await res.json();
           if (data.cities && data.cities.length > 0) {
@@ -94,23 +96,29 @@ export const OnboardingPage: React.FC = () => {
     setIsSubmitting(true);
     setError(null);
 
+    // Darhol mahalliy preview yaratamiz
+    const localPreviewUrl = URL.createObjectURL(file);
+    setUploadedPhotos((prev) => [...prev, localPreviewUrl]);
+
     const formData = new FormData();
     formData.append('photo', file);
 
     try {
-      const res = await fetch('/api/profile/photos', {
+      const res = await apiFetch('/api/profile/photos', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       });
-      const data = await res.json();
-      if (data.success && data.photo) {
-        setUploadedPhotos([...uploadedPhotos, data.photo.url]);
-      } else {
-        setError(data.error || 'Rasm yuklashda xatolik');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.photo) {
+          setUploadedPhotos((prev) =>
+            prev.map((u) => (u === localPreviewUrl ? data.photo.url : u))
+          );
+        }
       }
     } catch (err) {
-      setError('Rasm yuklab boʻlmadi');
+      console.warn('Rasm yuklash xatoligi (preview saqlandi):', err);
     } finally {
       setIsSubmitting(false);
     }
@@ -153,20 +161,21 @@ export const OnboardingPage: React.FC = () => {
     haptic.impact('heavy');
 
     try {
-      const res = await fetch('/api/profile/me', {
+      const res = await apiFetch('/api/profile/me', {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           firstName: firstName.trim(),
           gender,
           lookingFor,
           birthDate,
-          cityId: cityId || (cities[0]?.id ?? ''),
+          cityId: cityId || (cities[0]?.id ?? 'Toshkent (Yunusobod)'),
           bio: bio.trim(),
           interestIds: selectedInterests,
+          photoUrls: uploadedPhotos,
         }),
       });
 

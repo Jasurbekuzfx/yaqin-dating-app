@@ -48,12 +48,13 @@ export class StorageService {
       .webp({ quality: 75 })
       .toFile(thumbPath);
 
-    const apiUrl = process.env.API_URL || 'http://localhost:4000';
+    const rawApiUrl = process.env.API_URL || process.env.RENDER_EXTERNAL_URL || '';
+    const apiUrl = rawApiUrl.replace(/\/$/, '');
 
     return {
       filename,
-      url: `${apiUrl}/uploads/${filename}`,
-      thumbnailUrl: `${apiUrl}/uploads/${thumbFilename}`,
+      url: apiUrl ? `${apiUrl}/uploads/${filename}` : `/uploads/${filename}`,
+      thumbnailUrl: apiUrl ? `${apiUrl}/uploads/${thumbFilename}` : `/uploads/${thumbFilename}`,
       width: imageInfo.width || 800,
       height: imageInfo.height || 800,
     };

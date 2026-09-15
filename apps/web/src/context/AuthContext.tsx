@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useTelegram } from '../hooks/useTelegram.js';
 
+import { apiFetch } from '../utils/api.js';
+
 interface User {
   id: string;
   telegramId: string;
@@ -24,7 +26,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { initData } = useTelegram();
+  const { initData, user: tgUser } = useTelegram();
   const [token, setToken] = useState<string | null>(localStorage.getItem('yaqin_token'));
   const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('yaqin_user');
@@ -56,7 +58,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     if (!token) return;
     try {
-      const res = await fetch('/api/profile/me', {
+      const res = await apiFetch('/api/profile/me', {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
@@ -72,7 +74,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             isPremium: data.profile.isPremium,
           };
           setUser(u);
-          const onboarded = data.profile.photos.length > 0 && !!data.profile.cityId;
+          const onboarded = (data.profile.photos && data.profile.photos.length > 0) && !!data.profile.cityId;
           setIsOnboarded(onboarded);
           localStorage.setItem('yaqin_user', JSON.stringify(u));
           localStorage.setItem('yaqin_onboarded', String(onboarded));
@@ -92,11 +94,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        // Faqat development muhitida va initData bo'lmaganda mock payload ishlatiladi
-        const isDev = import.meta.env.DEV;
         let payload = initData;
-        if (!payload && isDev) {
-          payload = 'mock_100000001';
+        if (!payload) {
+          if (tgUser?.id) {
+            payload = `user=${encodeURIComponent(JSON.stringify(tgUser))}`;
+          } else if (import.meta.env.DEV) {
+            payload = 'mock_100000001';
+          }
         }
 
         if (!payload) {
@@ -104,7 +108,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        const res = await fetch('/api/auth/telegram', {
+        const res = await apiFetch('/api/auth/telegram', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ initData: payload }),
@@ -124,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     authenticate();
-  }, [initData]);
+  }, [initData, tgUser]);
 
   return (
     <AuthContext.Provider

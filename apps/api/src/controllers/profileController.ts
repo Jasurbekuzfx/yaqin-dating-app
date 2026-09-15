@@ -154,6 +154,41 @@ export class ProfileController {
         }
       }
 
+      const { photoUrls } = req.body;
+      if (Array.isArray(photoUrls) && photoUrls.length > 0) {
+        const existingCount = await prisma.profilePhoto.count({ where: { userId } }).catch(() => 0);
+        if (existingCount === 0) {
+          for (let i = 0; i < photoUrls.length; i++) {
+            const pUrl = photoUrls[i];
+            if (pUrl && !pUrl.startsWith('blob:')) {
+              await prisma.profilePhoto.create({
+                data: {
+                  userId,
+                  url: pUrl,
+                  sortOrder: i,
+                  isPrimary: i === 0,
+                },
+              }).catch(() => {});
+            }
+          }
+        }
+      }
+
+      // Agar hali ham rasm bo'lmasa, chiroyli default avatar yaratamiz
+      const currentPhotoCount = await prisma.profilePhoto.count({ where: { userId } }).catch(() => 0);
+      if (currentPhotoCount === 0) {
+        const fallbackName = firstName || 'Yaqin';
+        const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(fallbackName)}&background=FF4B6E&color=fff&size=512&bold=true`;
+        await prisma.profilePhoto.create({
+          data: {
+            userId,
+            url: defaultAvatar,
+            sortOrder: 0,
+            isPrimary: true,
+          },
+        }).catch(() => {});
+      }
+
       const updatedUser = await prisma.user.update({
         where: { id: userId },
         data: updateData,

@@ -73,6 +73,16 @@ const upload = multer({
 const uploadDir = process.env.UPLOAD_DIR || path.resolve(process.cwd(), 'uploads');
 app.use('/uploads', express.static(uploadDir));
 
+// Root Health Check for UptimeRobot & Load Balancers
+app.get(['/', '/health'], (_req: Request, res: Response) => {
+  res.json({
+    status: 'ok',
+    service: 'Yaqin Dating API',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ==========================================
 // API YO'NALISHLARI (ROUTES)
 // ==========================================

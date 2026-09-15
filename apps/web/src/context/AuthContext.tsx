@@ -16,7 +16,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isOnboarded: boolean;
-  login: (token: string, user: User, isOnboarded: boolean) => void;
+  login: (token: string, user: User, onboarded: boolean) => void;
   logout: () => void;
   refreshUser: () => Promise<void>;
 }
@@ -85,7 +85,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const authenticate = async () => {
-      // Agar token allaqachon bo'lsa, profilni yangilaymiz
       if (token) {
         await refreshUser();
         setIsLoading(false);
@@ -93,8 +92,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
 
       try {
-        // initData mavjud bo'lsa haqiqiy initData, aks holda dev mock
-        const payload = initData || 'mock_100000001';
+        // Faqat development muhitida va initData bo'lmaganda mock payload ishlatiladi
+        const isDev = import.meta.env.DEV;
+        let payload = initData;
+        if (!payload && isDev) {
+          payload = 'mock_100000001';
+        }
+
+        if (!payload) {
+          setIsLoading(false);
+          return;
+        }
 
         const res = await fetch('/api/auth/telegram', {
           method: 'POST',

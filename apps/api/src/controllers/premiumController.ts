@@ -91,18 +91,24 @@ export class PremiumController {
   }
 
   /**
-   * To'lov yaratish
+   * To'lov yaratish (Telegram Stars / Payme)
    */
   static async createPayment(req: Request, res: Response): Promise<void> {
     try {
       const userId = req.user!.id;
       const { productType, productId, paymentMethod = 'STARS' } = req.body;
 
+      const isProduction = process.env.NODE_ENV === 'production';
+      if (isProduction && paymentMethod === 'MOCK') {
+        res.status(403).json({ success: false, error: 'Productionda Mock toʻlovlar taqiqlangan' });
+        return;
+      }
+
       let amount = 0;
       let currency = 'UZS';
+      let title = '';
       let metadata: any = { productId };
 
-      // Narxlarni backend tomonidan aniqlash (frontendga ishonilmaydi!)
       if (productType === 'PREMIUM') {
         const plan = PREMIUM_PLANS.find((p) => p.id === productId);
         if (!plan) {
@@ -111,6 +117,7 @@ export class PremiumController {
         }
         amount = paymentMethod === 'STARS' ? plan.starsAmount : plan.priceUzs;
         currency = paymentMethod === 'STARS' ? 'XTR' : 'UZS';
+        title = `Yaqin Premium (${plan.titleUz})`;
         metadata.durationDays = plan.durationDays;
       } else if (productType === 'BOOST') {
         const plan = BOOST_PLANS.find((p) => p.id === productId);
@@ -120,6 +127,7 @@ export class PremiumController {
         }
         amount = paymentMethod === 'STARS' ? plan.starsAmount : plan.priceUzs;
         currency = paymentMethod === 'STARS' ? 'XTR' : 'UZS';
+        title = `Yaqin Boost (${plan.titleUz})`;
         metadata.durationHours = plan.durationHours;
         metadata.multiplier = plan.multiplier;
       } else if (productType === 'SUPER_LIKE') {
@@ -130,6 +138,7 @@ export class PremiumController {
         }
         amount = paymentMethod === 'STARS' ? pkg.starsAmount : pkg.priceUzs;
         currency = paymentMethod === 'STARS' ? 'XTR' : 'UZS';
+        title = `Yaqin ${pkg.count} ta Super Like`;
         metadata.count = pkg.count;
       } else {
         res.status(400).json({ success: false, error: 'Notoʻgʻri mahsulot turi' });
@@ -151,6 +160,31 @@ export class PremiumController {
         },
       });
 
+      // Telegram Stars uchun Invoice Link (agar haqiqiy bot token bo'lsa)
+      let invoiceLink: string | undefined;
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (paymentMethod === 'STARS' && botToken && !botToken.startsWith('dev_')) {
+        try {
+          const invRes = await fetch(`https://api.telegram.org/bot${botToken}/createInvoiceLink`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title,
+              description: `${title} xaridi uchun toʻlov`,
+              payload: providerPaymentId,
+              currency: 'XTR',
+              prices: [{ label: title, amount: amount }],
+            }),
+          });
+          const invData = (await invRes.json()) as any;
+          if (invData.ok) {
+            invoiceLink = invData.result;
+          }
+        } catch (e) {
+          console.error('Telegram Stars Invoice link yaratishda xatolik:', e);
+        }
+      }
+
       res.json({
         success: true,
         payment: {
@@ -159,6 +193,7 @@ export class PremiumController {
           amount: payment.amount,
           currency: payment.currency,
           productType: payment.productType,
+          invoiceLink,
         },
       });
     } catch (err: any) {
@@ -169,11 +204,12 @@ export class PremiumController {
 
   /**
    * To'lovni tasdiqlash (Webhook / Verification)
-   * Idempotent: bir xil to'lov 2 marta hisobga kiritilmaydi
+   * Idempotent & Production Guard
    */
   static async verifyPayment(req: Request, res: Response): Promise<void> {
     try {
       const { providerPaymentId, status = 'PAID' } = req.body;
+      const isProduction = process.env.NODE_ENV === 'production';
 
       if (!providerPaymentId) {
         res.status(400).json({ success: false, error: 'providerPaymentId talab qilinadi' });
@@ -189,7 +225,13 @@ export class PremiumController {
         return;
       }
 
-      // Idempotency: agar allaqachon to'langan bo'lsa, qayta kredit berilmaydi
+      // XAVFSIZLIK: Productionda oddiy client-side mock verify taqiqlanadi (Webhook yoki Bot callback orqali bo'lishi shart)
+      if (isProduction && payment.provider === 'MOCK') {
+        res.status(403).json({ success: false, error: 'Productionda Mock tasdiqlash taqiqlangan' });
+        return;
+      }
+
+      // Idempotency: allaqachon to'langan bo'lsa qayta hisoblanmaydi
       if (payment.status === 'PAID') {
         res.json({ success: true, message: 'Toʻlov allaqachon tasdiqlangan', payment });
         return;
@@ -206,7 +248,6 @@ export class PremiumController {
 
       const metadata = payment.metadata ? JSON.parse(payment.metadata) : {};
 
-      // Mahsulot turiga qarab foydalanuvchiga imtiyoz berish
       if (payment.productType === 'PREMIUM') {
         const days = metadata.durationDays || 30;
         const premiumUntil = new Date(Date.now() + days * 24 * 60 * 60 * 1000);

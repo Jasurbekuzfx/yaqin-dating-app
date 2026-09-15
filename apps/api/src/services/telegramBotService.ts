@@ -3,8 +3,14 @@ export class TelegramBotService {
   private static appUrl = process.env.APP_URL || 'http://localhost:5173';
 
   private static async sendTelegramMessage(chatId: string, text: string, replyMarkup?: any): Promise<boolean> {
+    const isProduction = process.env.NODE_ENV === 'production';
+
     if (!this.token || this.token.startsWith('dev_') || this.token === 'fake_token') {
-      console.log(`[Mock Telegram Bot] To: ${chatId} | Message: ${text}`);
+      if (isProduction) {
+        console.error('❌ [Production Telegram Error]: TELEGRAM_BOT_TOKEN haqiqiy token emas!');
+        return false;
+      }
+      console.log(`[Development Mock Bot Notification] To: ${chatId} | Message: ${text}`);
       return true;
     }
 

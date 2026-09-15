@@ -15,7 +15,9 @@
   },
   "scripts": {
     "generate": "prisma generate",
+    "generate:pg": "prisma generate --schema=prisma/schema.postgres.prisma",
     "push": "prisma db push",
+    "push:pg": "prisma db push --schema=prisma/schema.postgres.prisma",
     "migrate": "prisma migrate dev",
     "seed": "tsx src/seed.ts",
     "build": "tsc"

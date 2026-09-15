@@ -24,18 +24,38 @@ export class AuthController {
         return;
       }
 
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      // XAVFSIZLIK: Productionda Mock Auth qat'iy taqiqlanadi!
+      if (initData.startsWith('mock_')) {
+        if (isProduction) {
+          res.status(403).json({
+            success: false,
+            error: 'Xavfsizlik: Production muhitida Mock autentifikatsiyasi qatʼiyan taqiqlangan',
+          });
+          return;
+        }
+      }
+
       let telegramId: string;
       let firstName: string;
       let lastName: string | undefined;
       let username: string | undefined;
 
-      // Development muhitida qulay test qilish uchun mock auth (faqat developmentda)
-      const isDev = process.env.NODE_ENV === 'development';
-      if (isDev && initData.startsWith('mock_')) {
+      // Faqat development muhitida test qilish uchun mock auth
+      if (!isProduction && initData.startsWith('mock_')) {
         telegramId = initData.replace('mock_', '');
         firstName = 'Test Foydalanuvchi';
       } else {
-        // Haqiqiy kriptografik tekshiruv
+        if (!BOT_TOKEN) {
+          res.status(500).json({
+            success: false,
+            error: 'Server konfiguratsiyasi xatosi: TELEGRAM_BOT_TOKEN oʻrnatilmagan',
+          });
+          return;
+        }
+
+        // Haqiqiy kriptografik HMAC-SHA256 tekshiruv
         const verification = verifyTelegramInitData(initData, BOT_TOKEN);
         if (!verification.isValid || !verification.telegramUser) {
           res.status(401).json({ success: false, error: 'Telegram initData tekshiruvidan oʻtmadi' });
@@ -61,15 +81,14 @@ export class AuthController {
 
       if (!user) {
         isNewUser = true;
-        // Yangi foydalanuvchi — dastlabki yozuv (onboarding yakunlanishi kerak)
         user = await prisma.user.create({
           data: {
             telegramId,
             firstName,
             lastName,
             username,
-            birthDate: new Date('2000-01-01'), // Onboardingda yangilanadi
-            gender: 'MALE', // Onboardingda tanlanadi
+            birthDate: new Date('2000-01-01'),
+            gender: 'MALE',
             lookingFor: 'ALL',
           },
           include: {
@@ -81,8 +100,6 @@ export class AuthController {
       }
 
       const token = generateToken({ id: user.id, telegramId: user.telegramId });
-
-      // Foydalanuvchi onboardingni yakunlaganmi? (kamida 1 ta rasm, cityId, bio/interests)
       const isOnboarded = user.photos.length > 0 && !!user.cityId;
 
       res.json({

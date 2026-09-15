@@ -1,0 +1,303 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// 1. Foydalanuvchi asosiy modeli
+model User {
+  id               String    @id @default(cuid())
+  telegramId       String    @unique
+  username         String?
+  firstName        String
+  lastName         String?
+  birthDate        DateTime
+  gender           String    // "MALE" | "FEMALE"
+  lookingFor       String    // "MALE" | "FEMALE" | "ALL"
+  cityId           String?
+  city             City?     @relation(fields: [cityId], references: [id])
+  bio              String?
+  isVerified       Boolean   @default(false)
+  isPremium        Boolean   @default(false)
+  premiumUntil     DateTime?
+  isBlocked        Boolean   @default(false)
+  isBanned         Boolean   @default(false)
+  superLikeBalance Int       @default(1)
+  lastActiveAt     DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  photos           ProfilePhoto[]
+  userInterests    UserInterest[]
+  sentLikes        Like[]                 @relation("SentLikes")
+  receivedLikes    Like[]                 @relation("ReceivedLikes")
+  matchesAsUserA   Match[]                @relation("MatchesAsUserA")
+  matchesAsUserB   Match[]                @relation("MatchesAsUserB")
+  messages         Message[]
+  notifications    Notification[]
+  blockedUsers     Block[]                @relation("Blocker")
+  blockedByUsers   Block[]                @relation("Blocked")
+  reportsFiled     Report[]               @relation("Reporter")
+  reportsReceived  Report[]               @relation("Reported")
+  verifications    Verification[]
+  payments         Payment[]
+  subscriptions    Subscription[]
+  boosts           Boost[]
+  superLikeTx      SuperLikeTransaction[]
+
+  @@index([telegramId])
+  @@index([cityId])
+  @@index([gender])
+  @@index([birthDate])
+  @@index([isBlocked])
+  @@index([isBanned])
+  @@index([createdAt])
+}
+
+// 2. Profil fotosuratlari (1-6 ta)
+model ProfilePhoto {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url       String
+  sortOrder Int      @default(0)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// 3. O'zbekiston shaharlari va viloyatlari
+model City {
+  id        String   @id @default(cuid())
+  name      String
+  region    String
+  users     User[]
+  createdAt DateTime @default(now())
+
+  @@index([region])
+}
+
+// 4. Qiziqishlar (Interests / Tags)
+model Interest {
+  id            String         @id @default(cuid())
+  name          String         @unique
+  category      String
+  icon          String?
+  userInterests UserInterest[]
+}
+
+// 5. User - Interest munosabati
+model UserInterest {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interestId String
+  interest   Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, interestId])
+  @@index([userId])
+  @@index([interestId])
+}
+
+// 6. Like va Super Like
+model Like {
+  id         String   @id @default(cuid())
+  fromUserId String
+  fromUser   User     @relation("SentLikes", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUserId   String
+  toUser     User     @relation("ReceivedLikes", fields: [toUserId], references: [id], onDelete: Cascade)
+  type       String   @default("LIKE") // "LIKE" | "SUPER_LIKE"
+  createdAt  DateTime @default(now())
+
+  @@unique([fromUserId, toUserId])
+  @@index([fromUserId])
+  @@index([toUserId])
+  @@index([type])
+}
+
+// 7. O'zaro yoqqan foydalanuvchilar (Match)
+model Match {
+  id            String    @id @default(cuid())
+  userAId       String
+  userA         User      @relation("MatchesAsUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userBId       String
+  userB         User      @relation("MatchesAsUserB", fields: [userBId], references: [id], onDelete: Cascade)
+  lastMessageAt DateTime  @default(now())
+  createdAt     DateTime  @default(now())
+  messages      Message[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId])
+  @@index([userBId])
+  @@index([lastMessageAt])
+}
+
+// 8. Xabarlar (Chat)
+model Message {
+  id        String   @id @default(cuid())
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  senderId  String
+  sender    User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  content   String
+  type      String   @default("TEXT") // "TEXT" | "IMAGE" | "VOICE"
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([matchId, createdAt])
+  @@index([senderId])
+}
+
+// 9. Bildirishnomalar
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "LIKE" | "SUPER_LIKE" | "MATCH" | "MESSAGE" | "SYSTEM"
+  title     String
+  body      String
+  isRead    Boolean  @default(false)
+  data      String?  // JSON stringified payload
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+}
+
+// 10. Bloklash (Block)
+model Block {
+  id        String   @id @default(cuid())
+  blockerId String
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([blockerId, blockedId])
+  @@index([blockerId])
+  @@index([blockedId])
+}
+
+// 11. Shikoyatlar (Report)
+model Report {
+  id          String   @id @default(cuid())
+  reporterId  String
+  reporter    User     @relation("Reporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  reportedId  String
+  reported    User     @relation("Reported", fields: [reportedId], references: [id], onDelete: Cascade)
+  reason      String   // "FAKE_PROFILE" | "HARASSMENT" | "SPAM" | "INAPPROPRIATE_CONTENT" | "SCAM" | "OTHER"
+  description String?
+  status      String   @default("PENDING") // "PENDING" | "RESOLVED" | "DISMISSED"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([reportedId])
+  @@index([status])
+}
+
+// 12. Profilni tasdiqlash (Verification)
+model Verification {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  selfieUrl   String
+  status      String    @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  reviewerId  String?
+  submittedAt DateTime  @default(now())
+  reviewedAt  DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// 13. To'lovlar (Payment)
+model Payment {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String   // "STARS" | "PAYME" | "CLICK" | "MOCK"
+  providerPaymentId String   @unique
+  productType       String   // "PREMIUM" | "BOOST" | "SUPER_LIKE"
+  amount            Int      // So'm yoki Telegram Stars miqdori
+  currency          String   @default("UZS") // "UZS" | "XTR" (Telegram Stars)
+  status            String   @default("PENDING") // "PENDING" | "PAID" | "FAILED" | "REFUNDED"
+  metadata          String?  // JSON stringified details
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([providerPaymentId])
+}
+
+// 14. Premium Obuna (Subscription)
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planType  String   // "WEEK" | "MONTH" | "THREE_MONTHS" | "YEAR"
+  startDate DateTime @default(now())
+  endDate   DateTime
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isActive])
+}
+
+// 15. Profilni ko'tarish (Boost)
+model Boost {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  startedAt  DateTime @default(now())
+  expiresAt  DateTime
+  multiplier Float    @default(2.0)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, expiresAt])
+}
+
+// 16. Super Like tranzaksiyalari
+model SuperLikeTransaction {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  count     Int
+  type      String   // "PURCHASE" | "SPEND"
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+// 17. Admin foydalanuvchilar
+model AdminUser {
+  id           String     @id @default(cuid())
+  email        String     @unique
+  passwordHash String
+  name         String
+  role         String     @default("ADMIN") // "SUPERADMIN" | "ADMIN"
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  auditLogs    AuditLog[]
+
+  @@index([email])
+}
+
+// 18. Audit qaydlari
+model AuditLog {
+  id         String    @id @default(cuid())
+  adminId    String?
+  admin      AdminUser? @relation(fields: [adminId], references: [id])
+  action     String    // "BAN_USER", "APPROVE_VERIFICATION", "RESOLVE_REPORT", etc.
+  targetType String    // "USER", "VERIFICATION", "REPORT", "PAYMENT"
+  targetId   String
+  details    String?   // JSON details
+  createdAt  DateTime  @default(now())
+
+  @@index([adminId])
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}

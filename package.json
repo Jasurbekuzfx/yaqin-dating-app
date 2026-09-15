@@ -1,0 +1,26 @@
+{
+  "name": "yaqin-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Yaqin — O'zbekiston uchun Telegram Dating Platformasi",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:api": "npm run dev --workspace=@yaqin/api",
+    "dev:web": "npm run dev --workspace=@yaqin/web",
+    "dev:bot": "npm run dev --workspace=@yaqin/bot",
+    "dev:admin": "npm run dev --workspace=@yaqin/admin",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "db:generate": "npm run generate --workspace=@yaqin/database",
+    "db:push": "npm run push --workspace=@yaqin/database",
+    "db:seed": "npm run seed --workspace=@yaqin/database"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3"
+  }
+}

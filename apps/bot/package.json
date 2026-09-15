@@ -1,0 +1,22 @@
+{
+  "name": "@yaqin/bot",
+  "version": "1.0.0",
+  "private": true,
+  "main": "./dist/bot.js",
+  "scripts": {
+    "dev": "tsx watch src/bot.ts",
+    "build": "tsc",
+    "start": "node dist/bot.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@yaqin/shared": "*",
+    "dotenv": "^16.4.7",
+    "grammy": "^1.35.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3"
+  }
+}

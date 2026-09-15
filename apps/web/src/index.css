@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+
+  body {
+    background-color: #080A0F;
+    color: #F8FAFC;
+    min-height: 100vh;
+    padding-top: var(--sat);
+    padding-bottom: var(--sab);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #232B3E;
+  border-radius: 4px;
+}
+
+/* Glassmorphism helpers */
+.glass-panel {
+  background: rgba(18, 22, 32, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.gold-gradient {
+  background: linear-gradient(135deg, #F5D061 0%, #E5A93C 50%, #B87A14 100%);
+}
+
+.gold-text {
+  background: linear-gradient(135deg, #FFE28A 0%, #E5A93C 50%, #D48806 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.rose-gradient {
+  background: linear-gradient(135deg, #FB7185 0%, #E11D48 100%);
+}

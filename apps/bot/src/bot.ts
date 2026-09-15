@@ -10,8 +10,8 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const token = process.env.TELEGRAM_BOT_TOKEN || '';
-const appUrl = process.env.APP_URL || 'http://localhost:5173';
-const adminUrl = process.env.ADMIN_URL || 'http://localhost:5174';
+const appUrl = (process.env.APP_URL || process.env.WEBAPP_URL || 'https://yaqin-dating-app-1.onrender.com').trim();
+const adminUrl = (process.env.ADMIN_URL || 'http://localhost:5174').trim();
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Admin Telegram ID lari (.env dan)
@@ -35,10 +35,15 @@ bot.catch((err) => {
 });
 
 const addAppButton = (keyboard: InlineKeyboard, text: string, url: string) => {
-  if (url.startsWith('https://')) {
-    return keyboard.webApp(text, url);
+  const cleanUrl = (url || '').trim();
+  if (cleanUrl.startsWith('https://')) {
+    return keyboard.webApp(text, cleanUrl);
   }
-  return keyboard.url(text, 'https://t.me/YaqinUzBot_bot');
+  // Agar https bo'lmasa lekin localhost bo'lsa
+  if (cleanUrl.startsWith('http://')) {
+    return keyboard.url(text, cleanUrl);
+  }
+  return keyboard.webApp(text, `https://${cleanUrl}`);
 };
 
 // /start komandasi

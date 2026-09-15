@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext.js';
 import { OnboardingPage } from './pages/OnboardingPage.js';
 import { DiscoverPage } from './pages/DiscoverPage.js';
+import { ReelsPage } from './pages/ReelsPage.js';
 import { LikesPage } from './pages/LikesPage.js';
 import { MatchesPage } from './pages/MatchesPage.js';
 import { ChatPage } from './pages/ChatPage.js';
@@ -15,9 +16,9 @@ export const App: React.FC = () => {
 
   if (isLoading) {
     return (
-      <div className="h-screen bg-yaqin-bg flex flex-col items-center justify-center text-white">
-        <div className="w-12 h-12 border-3 border-yaqin-accent border-t-transparent rounded-full animate-spin mb-4" />
-        <span className="text-xl font-black gold-text">Yaqin</span>
+      <div className="h-screen bg-[#FAF7F2] flex flex-col items-center justify-center text-[#1E1E28]">
+        <div className="w-12 h-12 border-3 border-[#FF4B6E] border-t-transparent rounded-full animate-spin mb-4" />
+        <span className="text-xl font-extrabold tracking-tight text-[#FF4B6E]">Yaqin</span>
       </div>
     );
   }
@@ -31,6 +32,10 @@ export const App: React.FC = () => {
       <Route
         path="/discover"
         element={!isOnboarded ? <Navigate to="/onboarding" replace /> : <DiscoverPage />}
+      />
+      <Route
+        path="/reels"
+        element={!isOnboarded ? <Navigate to="/onboarding" replace /> : <ReelsPage />}
       />
       <Route
         path="/likes"
@@ -63,3 +68,4 @@ export const App: React.FC = () => {
     </Routes>
   );
 };
+

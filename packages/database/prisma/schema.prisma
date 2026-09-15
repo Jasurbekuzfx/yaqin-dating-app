@@ -47,6 +47,10 @@ model User {
   subscriptions    Subscription[]
   boosts           Boost[]
   superLikeTx      SuperLikeTransaction[]
+  videos           Video[]
+  videoLikes       VideoLike[]
+  videoComments    VideoComment[]
+  videoViews       VideoView[]
 
   @@index([telegramId])
   @@index([cityId])
@@ -300,4 +304,79 @@ model AuditLog {
   @@index([adminId])
   @@index([targetType, targetId])
   @@index([createdAt])
+}
+
+// 19. Video Tanishuv (Reels)
+model Video {
+  id           String         @id @default(cuid())
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url          String
+  thumbnailUrl String?
+  duration     Float?         @default(0)
+  width        Int?           @default(720)
+  height       Int?           @default(1280)
+  status       String         @default("PUBLISHED") // "PROCESSING", "PENDING_MODERATION", "PUBLISHED", "REJECTED", "HIDDEN", "DELETED"
+  caption      String?
+  isPublic     Boolean        @default(true)
+  viewCount    Int            @default(0)
+  likeCount    Int            @default(0)
+  commentCount Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  publishedAt  DateTime       @default(now())
+
+  likes        VideoLike[]
+  comments     VideoComment[]
+  views        VideoView[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([isPublic])
+  @@index([createdAt])
+  @@index([publishedAt])
+}
+
+// 20. Video Like
+model VideoLike {
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([videoId, userId])
+  @@index([videoId])
+  @@index([userId])
+}
+
+// 21. Video Kommentlar
+model VideoComment {
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  isDeleted Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([videoId])
+  @@index([userId])
+}
+
+// 22. Video Ko'rishlar (Anti-spam)
+model VideoView {
+  id        String   @id @default(cuid())
+  videoId   String
+  video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([videoId, userId])
+  @@index([videoId])
+  @@index([userId])
 }

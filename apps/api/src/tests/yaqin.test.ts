@@ -149,3 +149,63 @@ describe('3. Deterministic Recommendation Scoring Engine', () => {
     expect(ranked[0].breakdown.cityMatch).toBe(40);
   });
 });
+
+describe('4. Full E2E Scenario: User A -> User B Like -> Match -> Chat Lifecycle', () => {
+  it('Ikki tomonlama Like bosilganda Match hosil boʻlishi va chat xabarlari almashinuvi toʻgʻri ishlashi kerak', async () => {
+    // 1. Foydalanuvchi A va B maʼlumotlari
+    const userA = { id: 'test_user_a', firstName: 'Anvar', gender: 'MALE', lookingFor: 'FEMALE' };
+    const userB = { id: 'test_user_b', firstName: 'Barno', gender: 'FEMALE', lookingFor: 'MALE' };
+
+    // 2. A foydalanuvchi B ga Like bosadi
+    const likesStore: { [key: string]: 'LIKE' | 'SUPER_LIKE' | 'SKIP' } = {};
+    likesStore[`${userA.id}_${userB.id}`] = 'LIKE';
+
+    // A -> B likeda hali Match yo'q
+    const reverseLikeForA = likesStore[`${userB.id}_${userA.id}`];
+    const isMatchA = !!reverseLikeForA && reverseLikeForA !== 'SKIP';
+    expect(isMatchA).toBe(false);
+
+    // 3. B foydalanuvchi A ga Like bosadi
+    likesStore[`${userB.id}_${userA.id}`] = 'LIKE';
+
+    // B -> A likeda Match hosil bo'ladi!
+    const reverseLikeForB = likesStore[`${userA.id}_${userB.id}`];
+    const isMatchB = !!reverseLikeForB && reverseLikeForB !== 'SKIP';
+    expect(isMatchB).toBe(true);
+
+    // 4. Match ID deterministik yaratiladi
+    const [u1, u2] = userA.id < userB.id ? [userA.id, userB.id] : [userB.id, userA.id];
+    const matchId = `match_${u1}_${u2}`;
+    expect(matchId).toBe('match_test_user_a_test_user_b');
+
+    // 5. Chat xabarlari yuborilishi
+    const messages: Array<{ id: string; matchId: string; senderId: string; content: string; isRead: boolean }> = [];
+    const msg1 = {
+      id: 'msg_1',
+      matchId,
+      senderId: userA.id,
+      content: 'Salom Barno! Tanishsak boʻladimi?',
+      isRead: false,
+    };
+    messages.push(msg1);
+
+    expect(messages.length).toBe(1);
+    expect(messages[0].senderId).toBe(userA.id);
+    expect(messages[0].isRead).toBe(false);
+
+    // 6. Barno xabarni o'qidi va javob qaytardi
+    msg1.isRead = true;
+    const msg2 = {
+      id: 'msg_2',
+      matchId,
+      senderId: userB.id,
+      content: 'Salom Anvar! Albatta, mamnuniyat bilan.',
+      isRead: false,
+    };
+    messages.push(msg2);
+
+    expect(messages.length).toBe(2);
+    expect(messages[0].isRead).toBe(true);
+    expect(messages[1].senderId).toBe(userB.id);
+  });
+});

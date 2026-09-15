@@ -107,13 +107,13 @@ export const calculateCandidateScore = (
     ageProximity: 0,
   };
 
-  // 1. Shahar va Hudud mosligi (City & Region Match)
+  // 1. Shahar va Hudud mosligi (City, District & Region Match) — Eng ustuvor omil
   if (user.cityId && candidate.cityId && user.cityId === candidate.cityId) {
-    breakdown.cityMatch = 40;
-    totalScore += 40;
+    breakdown.cityMatch = 120; // O'zining shahri/tumanidagi nomzodlarga eng katta ustuvorlik
+    totalScore += 120;
   } else if (user.region && candidate.region && user.region === candidate.region) {
-    breakdown.regionMatch = 20;
-    totalScore += 20;
+    breakdown.regionMatch = 60; // O'zining viloyatidagi nomzodlarga yuqori ustuvorlik
+    totalScore += 60;
   }
 
   // 2. Umumiy qiziqishlar mosligi (Shared Interests)

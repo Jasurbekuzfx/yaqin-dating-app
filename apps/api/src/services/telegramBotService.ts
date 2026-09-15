@@ -1,11 +1,16 @@
 export class TelegramBotService {
-  private static token = process.env.TELEGRAM_BOT_TOKEN;
-  private static appUrl = process.env.APP_URL || 'http://localhost:5173';
+  private static getToken() {
+    return process.env.TELEGRAM_BOT_TOKEN || '';
+  }
+  private static getAppUrl() {
+    return process.env.APP_URL || 'http://localhost:5173';
+  }
 
   private static async sendTelegramMessage(chatId: string, text: string, replyMarkup?: any): Promise<boolean> {
     const isProduction = process.env.NODE_ENV === 'production';
+    const token = this.getToken();
 
-    if (!this.token || this.token.startsWith('dev_') || this.token === 'fake_token') {
+    if (!token || token.startsWith('dev_') || token === 'fake_token') {
       if (isProduction) {
         console.error('❌ [Production Telegram Error]: TELEGRAM_BOT_TOKEN haqiqiy token emas!');
         return false;
@@ -15,7 +20,7 @@ export class TelegramBotService {
     }
 
     try {
-      const url = `https://api.telegram.org/bot${this.token}/sendMessage`;
+      const url = `https://api.telegram.org/bot${token}/sendMessage`;
       const body: any = {
         chat_id: chatId,
         text,
@@ -38,17 +43,19 @@ export class TelegramBotService {
     }
   }
 
+  private static getInlineButton(text: string, path = '') {
+    const baseUrl = this.getAppUrl();
+    const targetUrl = path ? `${baseUrl.replace(/\/$/, '')}${path}` : baseUrl;
+    if (targetUrl.startsWith('https://')) {
+      return { text, web_app: { url: targetUrl } };
+    }
+    return { text, url: targetUrl };
+  }
+
   static async sendLikeNotification(chatId: string): Promise<boolean> {
     const text = `❤️ <b>Sizga yangi Like keldi!</b>\n\nKim sizni yoqtirganini koʻrish uchun Yaqin ilovasini oching.`;
     const replyMarkup = {
-      inline_keyboard: [
-        [
-          {
-            text: '👀 Koʻrish',
-            web_app: { url: this.appUrl },
-          },
-        ],
-      ],
+      inline_keyboard: [[this.getInlineButton('👀 Koʻrish', '/likes')]],
     };
     return this.sendTelegramMessage(chatId, text, replyMarkup);
   }
@@ -56,14 +63,7 @@ export class TelegramBotService {
   static async sendSuperLikeNotification(chatId: string): Promise<boolean> {
     const text = `⭐ <b>Sizga Super Like keldi!</b>\n\nKimdir sizga alohida qiziqish bildirdi! Ilovaga kirib darhol koʻring.`;
     const replyMarkup = {
-      inline_keyboard: [
-        [
-          {
-            text: '⭐ Super Likeni koʻrish',
-            web_app: { url: this.appUrl },
-          },
-        ],
-      ],
+      inline_keyboard: [[this.getInlineButton('⭐ Super Likeni koʻrish', '/likes')]],
     };
     return this.sendTelegramMessage(chatId, text, replyMarkup);
   }
@@ -71,14 +71,7 @@ export class TelegramBotService {
   static async sendMatchNotification(chatId: string, partnerName: string): Promise<boolean> {
     const text = `💫 <b>Tabriklaymiz, yangi Match!</b>\n\nSiz va <b>${partnerName}</b> bir-biringizga yoqdingiz. Hozirning oʻzidayoq suhbatni boshlashingiz mumkin!`;
     const replyMarkup = {
-      inline_keyboard: [
-        [
-          {
-            text: '💬 Suhbatni boshlash',
-            web_app: { url: this.appUrl },
-          },
-        ],
-      ],
+      inline_keyboard: [[this.getInlineButton('💬 Suhbatni boshlash', '/matches')]],
     };
     return this.sendTelegramMessage(chatId, text, replyMarkup);
   }
@@ -86,14 +79,7 @@ export class TelegramBotService {
   static async sendMessageNotification(chatId: string, senderName: string, snippet: string): Promise<boolean> {
     const text = `💬 <b>${senderName}</b> sizga xabar yubordi:\n\n<i>"${snippet.slice(0, 80)}${snippet.length > 80 ? '...' : ''}"</i>`;
     const replyMarkup = {
-      inline_keyboard: [
-        [
-          {
-            text: '✉️ Javob yozish',
-            web_app: { url: this.appUrl },
-          },
-        ],
-      ],
+      inline_keyboard: [[this.getInlineButton('✉️ Javob yozish', '/matches')]],
     };
     return this.sendTelegramMessage(chatId, text, replyMarkup);
   }

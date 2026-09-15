@@ -1,8 +1,13 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { prisma } from '@yaqin/database';
 
-dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
 const token = process.env.TELEGRAM_BOT_TOKEN || '';
 const appUrl = process.env.APP_URL || 'http://localhost:5173';
@@ -25,9 +30,20 @@ if (!token || token.startsWith('dev_') || token === 'fake_token') {
 
 export const bot = new Bot(token || 'dummy_token');
 
+bot.catch((err) => {
+  console.error('⚠️ [Bot Error Catch]:', err.message || err);
+});
+
+const addAppButton = (keyboard: InlineKeyboard, text: string, url: string) => {
+  if (url.startsWith('https://')) {
+    return keyboard.webApp(text, url);
+  }
+  return keyboard.url(text, 'https://t.me/YaqinUzBot_bot');
+};
+
 // /start komandasi
 bot.command('start', async (ctx) => {
-  const keyboard = new InlineKeyboard().webApp('💫 Boshlash', appUrl);
+  const keyboard = addAppButton(new InlineKeyboard(), '💫 Boshlash', appUrl);
 
   const welcomeText =
     `🌟 <b>Yaqin — yangi insonlar bilan tanishing.</b>\n\n` +
@@ -71,10 +87,10 @@ bot.command('admin', async (ctx) => {
     }),
   ]);
 
-  const keyboard = new InlineKeyboard()
-    .webApp('📊 Admin Panelni Ochish', adminUrl)
-    .row()
-    .webApp('💫 Mini App', appUrl);
+  let keyboard = new InlineKeyboard();
+  keyboard = addAppButton(keyboard, '📊 Admin Panelni Ochish', adminUrl);
+  keyboard = keyboard.row();
+  keyboard = addAppButton(keyboard, '💫 Mini App', appUrl);
 
   const adminMsg =
     `👑 <b>Yaqin Admin Boshqaruv Markazi</b>\n\n` +
@@ -91,7 +107,7 @@ bot.command('admin', async (ctx) => {
 
 // /help komandasi
 bot.command('help', async (ctx) => {
-  const keyboard = new InlineKeyboard().webApp('💫 Mini Appni ochish', appUrl);
+  const keyboard = addAppButton(new InlineKeyboard(), '💫 Mini Appni ochish', appUrl);
 
   const helpText =
     `ℹ️ <b>Yaqin platformasi boʻyicha maʼlumot:</b>\n\n` +
@@ -109,7 +125,7 @@ bot.command('help', async (ctx) => {
 
 // /profile komandasi
 bot.command('profile', async (ctx) => {
-  const keyboard = new InlineKeyboard().webApp('👤 Mening Profilim', `${appUrl}/profile`);
+  const keyboard = addAppButton(new InlineKeyboard(), '👤 Mening Profilim', `${appUrl}/profile`);
   await ctx.reply('Profilingizni koʻrish va tahrirlash uchun quyidagi tugmani bosing:', {
     reply_markup: keyboard,
   });
@@ -117,7 +133,7 @@ bot.command('profile', async (ctx) => {
 
 // /premium komandasi
 bot.command('premium', async (ctx) => {
-  const keyboard = new InlineKeyboard().webApp('⭐ Premium Obuna', `${appUrl}/premium`);
+  const keyboard = addAppButton(new InlineKeyboard(), '⭐ Premium Obuna', `${appUrl}/premium`);
   await ctx.reply('Yaqin Premium imtiyozlari va tariflari bilan tanishish uchun quyidagi tugmani bosing:', {
     reply_markup: keyboard,
   });
@@ -125,7 +141,7 @@ bot.command('premium', async (ctx) => {
 
 // /settings komandasi
 bot.command('settings', async (ctx) => {
-  const keyboard = new InlineKeyboard().webApp('⚙️ Sozlamalar', `${appUrl}/settings`);
+  const keyboard = addAppButton(new InlineKeyboard(), '⚙️ Sozlamalar', `${appUrl}/settings`);
   await ctx.reply('Ilova va bildirishnoma sozlamalarini boshqarish:', {
     reply_markup: keyboard,
   });

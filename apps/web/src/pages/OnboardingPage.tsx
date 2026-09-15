@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldAlert, ArrowRight, ArrowLeft, Camera, Check, UploadCloud } from 'lucide-react';
+import { ShieldCheck, ArrowRight, ArrowLeft, Camera, Check, UploadCloud, Heart, Sparkles, MapPin, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.js';
 import { useTelegram } from '../hooks/useTelegram.js';
 import { isAtLeast18YearsOld } from '@yaqin/shared';
@@ -15,10 +15,10 @@ export const OnboardingPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
-  const [isAdultConfirmed, setIsAdultConfirmed] = useState(false);
+  const [isAdultConfirmed, setIsAdultConfirmed] = useState(true);
   const [firstName, setFirstName] = useState('');
-  const [gender, setGender] = useState<'MALE' | 'FEMALE'>('MALE');
-  const [lookingFor, setLookingFor] = useState<'MALE' | 'FEMALE' | 'ALL'>('FEMALE');
+  const [gender, setGender] = useState<'MALE' | 'FEMALE'>('FEMALE');
+  const [lookingFor, setLookingFor] = useState<'MALE' | 'FEMALE' | 'ALL'>('MALE');
   const [birthDate, setBirthDate] = useState('2002-01-01');
   const [cityId, setCityId] = useState('');
   const [bio, setBio] = useState('');
@@ -26,7 +26,7 @@ export const OnboardingPage: React.FC = () => {
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
 
   // Config data (shaharlar va qiziqishlar)
-  const [cities, setCities] = useState<{ id: string; name: string }[]>([]);
+  const [cities, setCities] = useState<{ id: string; name: string; region?: string }[]>([]);
   const [interests, setInterests] = useState<{ id: string; name: string; icon?: string }[]>([]);
 
   useEffect(() => {
@@ -93,13 +93,13 @@ export const OnboardingPage: React.FC = () => {
     setError(null);
     haptic.impact('light');
 
-    if (step === 1 && !isAdultConfirmed) {
-      setError('Davom etish uchun 18+ yosh talabini tasdiqlashingiz kerak');
+    if (step === 1 && !firstName.trim()) {
+      setError('Iltimos, ismingizni kiriting');
       return;
     }
 
-    if (step === 2 && !firstName.trim()) {
-      setError('Ismingizni kiriting');
+    if (step === 2 && !gender) {
+      setError('Jinsingizni tanlang');
       return;
     }
 
@@ -108,12 +108,12 @@ export const OnboardingPage: React.FC = () => {
       return;
     }
 
-    if (step === 6 && uploadedPhotos.length === 0) {
+    if (step === 5 && uploadedPhotos.length === 0) {
       setError('Kamida 1 ta fotosurat yuklashingiz kerak');
       return;
     }
 
-    if (step < 7) {
+    if (step < 6) {
       setStep(step + 1);
     } else {
       handleFinish();
@@ -137,7 +137,7 @@ export const OnboardingPage: React.FC = () => {
           gender,
           lookingFor,
           birthDate,
-          cityId,
+          cityId: cityId || (cities[0]?.id ?? ''),
           bio: bio.trim(),
           interestIds: selectedInterests,
         }),
@@ -158,162 +158,161 @@ export const OnboardingPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-yaqin-bg text-white p-5 flex flex-col justify-between max-w-md mx-auto">
-      {/* Yuqori progress bar */}
+    <div className="min-h-screen bg-[#FAF7F2] text-[#1E1E28] px-6 py-5 flex flex-col justify-between max-w-md mx-auto relative overflow-hidden font-sans">
+      {/* Top Bar with Step & Progress */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          {step > 1 ? (
-            <button
-              onClick={() => setStep(step - 1)}
-              className="p-2 text-yaqin-muted hover:text-white rounded-full bg-white/5"
-            >
-              <ArrowLeft size={20} />
-            </button>
-          ) : (
-            <div className="w-8" />
-          )}
-          <span className="text-xs font-semibold tracking-wider text-yaqin-muted uppercase">
-            Bosqich {step} / 7
+        <div className="flex items-center justify-between pt-2 pb-3">
+          <span className="text-xs font-bold tracking-widest text-[#1E1E28]">
+            0{step} <span className="text-[#8E8B99] font-normal">/ 06</span>
           </span>
-          <div className="w-8" />
+          <button
+            onClick={() => {
+              if (step < 6) setStep(step + 1);
+              else handleFinish();
+            }}
+            className="text-xs font-semibold text-[#8E8B99] hover:text-[#FF4B6E] transition-colors"
+          >
+            Oʻtkazib yuborish
+          </button>
         </div>
 
-        <div className="w-full bg-yaqin-surface h-1.5 rounded-full overflow-hidden mb-6">
+        {/* Progress Line */}
+        <div className="w-full bg-[#EAE5DC] h-1 rounded-full overflow-hidden mb-8">
           <div
-            className="h-full gold-gradient transition-all duration-300"
-            style={{ width: `${(step / 7) * 100}%` }}
+            className="h-full bg-[#FF4B6E] transition-all duration-300 rounded-full"
+            style={{ width: `${(step / 6) * 100}%` }}
           />
         </div>
       </div>
 
-      {/* Bosqichlar mazmuni */}
-      <div className="flex-1 flex flex-col justify-center py-4">
-        {/* 1-Qadam: 18+ Yosh cheklovi */}
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col justify-center py-2">
+        {/* Step 1: Ism */}
         {step === 1 && (
           <div className="text-center animate-fade-in">
-            <div className="w-20 h-20 mx-auto rounded-full bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-500 mb-6">
-              <ShieldAlert size={40} />
+            {/* Romantic Illustration */}
+            <div className="w-24 h-24 mx-auto mb-6 relative flex items-center justify-center">
+              <div className="w-20 h-20 bg-[#FFE4E8] rounded-full flex items-center justify-center">
+                <div className="w-12 h-10 bg-[#FF4B6E] rounded-2xl flex items-center justify-center shadow-md shadow-rose-500/30 transform -rotate-6">
+                  <Heart className="w-6 h-6 text-white fill-white" />
+                </div>
+              </div>
+              <div className="absolute top-1 right-2 w-7 h-7 bg-[#FFF0F3] rounded-full flex items-center justify-center border border-[#FFD0D8]">
+                <Heart className="w-3.5 h-3.5 text-[#FF4B6E] fill-[#FF4B6E]" />
+              </div>
             </div>
-            <h1 className="text-3xl font-black mb-3">Yaqin’ga xush kelibsiz</h1>
-            <p className="text-yaqin-muted text-sm leading-relaxed mb-8">
-              Platformadan faqat 18 yoshga toʻlgan voyaga yetgan shaxslar tanishuv maqsadida foydalanishi mumkin.
+
+            <h1 className="text-2xl font-black tracking-tight text-[#1E1E28] mb-2">
+              Avval sizni tanib olaylik
+            </h1>
+            <p className="text-[#8E8B99] text-xs font-medium leading-relaxed max-w-xs mx-auto mb-8">
+              Yangi insonlar bilan tanishish uchun bir necha savolga javob bering.
             </p>
 
-            <label className="flex items-center gap-3 p-4 rounded-2xl bg-yaqin-surface border border-yaqin-border text-left cursor-pointer">
+            <div className="text-left mb-4">
+              <label className="text-xs font-bold text-[#1E1E28] mb-2 block">
+                Ismingiz nima?
+              </label>
               <input
-                type="checkbox"
-                checked={isAdultConfirmed}
-                onChange={(e) => setIsAdultConfirmed(e.target.checked)}
-                className="w-5 h-5 accent-yaqin-accent rounded"
+                type="text"
+                placeholder="Ismingizni kiriting"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                autoFocus
+                className="w-full px-4 py-4 rounded-2xl bg-white border border-[#EAE5DC] text-[#1E1E28] placeholder-[#B5B2BE] font-medium text-sm focus:outline-none focus:border-[#FF4B6E] shadow-sm transition-all"
               />
-              <span className="text-sm font-medium text-slate-200">
-                Men 18 yoshdan kattaman va qoidalar bilan roziman
-              </span>
-            </label>
+            </div>
           </div>
         )}
 
-        {/* 2-Qadam: Ism va Jins */}
+        {/* Step 2: Jins va Kimni qidiryapsiz */}
         {step === 2 && (
-          <div className="animate-fade-in">
-            <h2 className="text-2xl font-black mb-2">Ismingiz va jinsingiz</h2>
-            <p className="text-yaqin-muted text-sm mb-6">Profil kartochkasida koʻrsatiladigan maʼlumotlar</p>
+          <div className="text-center animate-fade-in">
+            <div className="w-20 h-20 mx-auto mb-5 bg-[#FFE4E8] rounded-full flex items-center justify-center">
+              <User className="w-10 h-10 text-[#FF4B6E]" />
+            </div>
 
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-yaqin-muted mb-1 block">Ismingiz</label>
-                <input
-                  type="text"
-                  placeholder="Masalan: Sardor"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-2xl bg-yaqin-surface border border-yaqin-border text-white placeholder-slate-500 focus:outline-none focus:border-yaqin-accent"
-                />
-              </div>
+            <h1 className="text-2xl font-black tracking-tight text-[#1E1E28] mb-2">
+              Kim bilan tanishmoqchisiz?
+            </h1>
+            <p className="text-[#8E8B99] text-xs font-medium leading-relaxed mb-6">
+              Sizga mos profillarni tavsiya qilishimiz uchun
+            </p>
 
+            <div className="space-y-4 text-left">
               <div>
-                <label className="text-xs font-semibold text-yaqin-muted mb-1 block">Sizning jinsingiz</label>
+                <label className="text-xs font-bold text-[#1E1E28] mb-2 block">
+                  Sizning jinsingiz:
+                </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     type="button"
-                    onClick={() => setGender('MALE')}
-                    className={`py-3 rounded-2xl font-semibold text-sm border transition-all ${
-                      gender === 'MALE'
-                        ? 'border-yaqin-accent bg-yaqin-accent/15 text-yaqin-accent'
-                        : 'border-yaqin-border bg-yaqin-surface text-slate-400'
+                    onClick={() => {
+                      setGender('FEMALE');
+                      setLookingFor('MALE');
+                    }}
+                    className={`py-3.5 px-4 rounded-2xl font-bold text-xs border transition-all flex items-center justify-center gap-2 ${
+                      gender === 'FEMALE'
+                        ? 'border-[#FF4B6E] bg-white text-[#FF4B6E] shadow-md shadow-rose-500/10'
+                        : 'border-[#EAE5DC] bg-white text-[#8E8B99]'
                     }`}
                   >
-                    Erkak 👨
+                    <span>👩</span> Ayol
                   </button>
                   <button
                     type="button"
-                    onClick={() => setGender('FEMALE')}
-                    className={`py-3 rounded-2xl font-semibold text-sm border transition-all ${
-                      gender === 'FEMALE'
-                        ? 'border-rose-500 bg-rose-500/15 text-rose-400'
-                        : 'border-yaqin-border bg-yaqin-surface text-slate-400'
+                    onClick={() => {
+                      setGender('MALE');
+                      setLookingFor('FEMALE');
+                    }}
+                    className={`py-3.5 px-4 rounded-2xl font-bold text-xs border transition-all flex items-center justify-center gap-2 ${
+                      gender === 'MALE'
+                        ? 'border-[#FF4B6E] bg-white text-[#FF4B6E] shadow-md shadow-rose-500/10'
+                        : 'border-[#EAE5DC] bg-white text-[#8E8B99]'
                     }`}
                   >
-                    Ayol 👩
+                    <span>👨</span> Erkak
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* 3-Qadam: Tug'ilgan sana va Kimni qidiryapsiz */}
-        {step === 3 && (
-          <div className="animate-fade-in">
-            <h2 className="text-2xl font-black mb-2">Yoshingiz va Qidiruv</h2>
-            <p className="text-yaqin-muted text-sm mb-6">Tugʻilgan sanangiz boʻyicha yoshingiz aniqlanadi</p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs font-semibold text-yaqin-muted mb-1 block">Tugʻilgan sana</label>
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-2xl bg-yaqin-surface border border-yaqin-border text-white focus:outline-none focus:border-yaqin-accent"
-                />
-              </div>
 
               <div>
-                <label className="text-xs font-semibold text-yaqin-muted mb-1 block">Kimni qidiryapsiz?</label>
+                <label className="text-xs font-bold text-[#1E1E28] mb-2 block">
+                  Kimni qidiryapsiz?
+                </label>
                 <div className="grid grid-cols-3 gap-2">
                   <button
                     type="button"
                     onClick={() => setLookingFor('FEMALE')}
-                    className={`py-3 rounded-2xl font-semibold text-xs border transition-all ${
+                    className={`py-3 rounded-2xl font-bold text-[11px] border transition-all ${
                       lookingFor === 'FEMALE'
-                        ? 'border-rose-500 bg-rose-500/15 text-rose-400'
-                        : 'border-yaqin-border bg-yaqin-surface text-slate-400'
+                        ? 'border-[#FF4B6E] bg-white text-[#FF4B6E] shadow-sm'
+                        : 'border-[#EAE5DC] bg-white text-[#8E8B99]'
                     }`}
                   >
-                    Qizlarni
+                    👩 Ayollar
                   </button>
                   <button
                     type="button"
                     onClick={() => setLookingFor('MALE')}
-                    className={`py-3 rounded-2xl font-semibold text-xs border transition-all ${
+                    className={`py-3 rounded-2xl font-bold text-[11px] border transition-all ${
                       lookingFor === 'MALE'
-                        ? 'border-sky-500 bg-sky-500/15 text-sky-400'
-                        : 'border-yaqin-border bg-yaqin-surface text-slate-400'
+                        ? 'border-[#FF4B6E] bg-white text-[#FF4B6E] shadow-sm'
+                        : 'border-[#EAE5DC] bg-white text-[#8E8B99]'
                     }`}
                   >
-                    Yigitlarni
+                    👨 Erkaklar
                   </button>
                   <button
                     type="button"
                     onClick={() => setLookingFor('ALL')}
-                    className={`py-3 rounded-2xl font-semibold text-xs border transition-all ${
+                    className={`py-3 rounded-2xl font-bold text-[11px] border transition-all ${
                       lookingFor === 'ALL'
-                        ? 'border-yaqin-accent bg-yaqin-accent/15 text-yaqin-accent'
-                        : 'border-yaqin-border bg-yaqin-surface text-slate-400'
+                        ? 'border-[#FF4B6E] bg-white text-[#FF4B6E] shadow-sm'
+                        : 'border-[#EAE5DC] bg-white text-[#8E8B99]'
                     }`}
                   >
-                    Barchasini
+                    👩‍❤️‍👨 Barchasi
                   </button>
                 </div>
               </div>
@@ -321,49 +320,74 @@ export const OnboardingPage: React.FC = () => {
           </div>
         )}
 
-        {/* 4-Qadam: Shahar va Bio */}
-        {step === 4 && (
-          <div className="animate-fade-in">
-            <h2 className="text-2xl font-black mb-2">Shahar va Oʻzingiz haqingizda</h2>
-            <p className="text-yaqin-muted text-sm mb-6">Yaqiningizdagi insonlar bilan bogʻlanish uchun</p>
+        {/* Step 3: Yosh va Shahar */}
+        {step === 3 && (
+          <div className="text-center animate-fade-in">
+            <div className="w-20 h-20 mx-auto mb-5 bg-[#FFE4E8] rounded-full flex items-center justify-center">
+              <MapPin className="w-10 h-10 text-[#FF4B6E]" />
+            </div>
 
-            <div className="space-y-4">
+            <h1 className="text-2xl font-black tracking-tight text-[#1E1E28] mb-2">
+              Qayerdansiz?
+            </h1>
+            <p className="text-[#8E8B99] text-xs font-medium leading-relaxed mb-6">
+              Yaqiningizdagi insonlar bilan tanishish uchun
+            </p>
+
+            <div className="space-y-4 text-left">
               <div>
-                <label className="text-xs font-semibold text-yaqin-muted mb-1 block">Shahringiz</label>
+                <label className="text-xs font-bold text-[#1E1E28] mb-2 block">
+                  Viloyat / Shahar / Tuman
+                </label>
                 <select
                   value={cityId}
                   onChange={(e) => setCityId(e.target.value)}
-                  className="w-full px-4 py-3.5 rounded-2xl bg-yaqin-surface border border-yaqin-border text-white focus:outline-none focus:border-yaqin-accent"
+                  className="w-full px-4 py-3.5 rounded-2xl bg-white border border-[#EAE5DC] text-[#1E1E28] font-medium text-sm focus:outline-none focus:border-[#FF4B6E] shadow-sm max-h-60"
                 >
-                  {cities.map((c) => (
-                    <option key={c.id} value={c.id} className="bg-yaqin-surface text-white">
-                      {c.name}
-                    </option>
+                  {Array.from(new Set(cities.map((c) => c.region || 'Boshqa'))).map((reg) => (
+                    <optgroup key={reg} label={`📍 ${reg}`}>
+                      {cities
+                        .filter((c) => (c.region || 'Boshqa') === reg)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                    </optgroup>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-yaqin-muted mb-1 block">Bio (Qisqacha oʻzingiz haqingizda)</label>
-                <textarea
-                  rows={4}
-                  placeholder="Xarakteringiz, mashgʻulotlaringiz va qiziqishlaringiz haqida yozing..."
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  className="w-full px-4 py-3 rounded-2xl bg-yaqin-surface border border-yaqin-border text-white placeholder-slate-500 focus:outline-none focus:border-yaqin-accent resize-none text-sm"
+                <label className="text-xs font-bold text-[#1E1E28] mb-2 block">
+                  Tugʻilgan sanangiz (18+)
+                </label>
+                <input
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  className="w-full px-4 py-3.5 rounded-2xl bg-white border border-[#EAE5DC] text-[#1E1E28] font-medium text-sm focus:outline-none focus:border-[#FF4B6E] shadow-sm"
                 />
               </div>
             </div>
           </div>
         )}
 
-        {/* 5-Qadam: Qiziqishlar */}
-        {step === 5 && (
-          <div className="animate-fade-in">
-            <h2 className="text-2xl font-black mb-2">Qiziqishlaringiz</h2>
-            <p className="text-yaqin-muted text-sm mb-4">Bir xil dunyoqarashdagi insonlarni topish uchun (kamida 3 ta)</p>
+        {/* Step 4: Qiziqishlar va Bio */}
+        {step === 4 && (
+          <div className="text-center animate-fade-in">
+            <div className="w-20 h-20 mx-auto mb-4 bg-[#FFE4E8] rounded-full flex items-center justify-center">
+              <Sparkles className="w-10 h-10 text-[#FF4B6E]" />
+            </div>
 
-            <div className="flex flex-wrap gap-2 max-h-72 overflow-y-auto pr-1">
+            <h1 className="text-2xl font-black tracking-tight text-[#1E1E28] mb-1">
+              Qiziqishlaringiz
+            </h1>
+            <p className="text-[#8E8B99] text-xs font-medium mb-4">
+              Oʻzingizga yoqadigan mashgʻulotlarni tanlang (kamida 3 ta)
+            </p>
+
+            <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto pr-1 mb-4">
               {interests.map((item) => {
                 const isSelected = selectedInterests.includes(item.id);
                 return (
@@ -371,41 +395,63 @@ export const OnboardingPage: React.FC = () => {
                     key={item.id}
                     type="button"
                     onClick={() => handleInterestToggle(item.id)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold border flex items-center gap-1.5 transition-all ${
+                    className={`px-3 py-2 rounded-xl text-xs font-semibold border transition-all flex items-center gap-1.5 ${
                       isSelected
-                        ? 'border-yaqin-accent bg-yaqin-accent text-yaqin-bg font-bold shadow-md shadow-yaqin-accent/20'
-                        : 'border-yaqin-border bg-yaqin-surface text-slate-300'
+                        ? 'border-[#FF4B6E] bg-[#FF4B6E] text-white shadow-sm'
+                        : 'border-[#EAE5DC] bg-white text-[#1E1E28]'
                     }`}
                   >
-                    <span>{item.icon}</span>
+                    <span>{item.icon || '✨'}</span>
                     <span>{item.name}</span>
                   </button>
                 );
               })}
             </div>
+
+            <div className="text-left">
+              <label className="text-xs font-bold text-[#1E1E28] mb-1 block">
+                Bio (Qisqacha oʻzingiz haqingizda)
+              </label>
+              <textarea
+                rows={3}
+                placeholder="Xarakteringiz va qiziqishlaringiz haqida yozing..."
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-2xl bg-white border border-[#EAE5DC] text-[#1E1E28] placeholder-[#B5B2BE] font-medium text-xs focus:outline-none focus:border-[#FF4B6E] shadow-sm resize-none"
+              />
+            </div>
           </div>
         )}
 
-        {/* 6-Qadam: Fotosuratlar */}
-        {step === 6 && (
-          <div className="animate-fade-in">
-            <h2 className="text-2xl font-black mb-2">Fotosuratingiz</h2>
-            <p className="text-yaqin-muted text-sm mb-6">Yuzingiz aniq koʻringan kamida 1 ta rasm yuklang</p>
+        {/* Step 5: Fotosuratlar */}
+        {step === 5 && (
+          <div className="text-center animate-fade-in">
+            <div className="w-20 h-20 mx-auto mb-4 bg-[#FFE4E8] rounded-full flex items-center justify-center">
+              <Camera className="w-10 h-10 text-[#FF4B6E]" />
+            </div>
 
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <h1 className="text-2xl font-black tracking-tight text-[#1E1E28] mb-1">
+              Yaxshi surat tanlang
+            </h1>
+            <p className="text-[#8E8B99] text-xs font-medium mb-6">
+              Yuzingiz aniq koʻringan kamida 1 ta fotosurat yuklang
+            </p>
+
+            <div className="grid grid-cols-2 gap-3 mb-2">
               {uploadedPhotos.map((url, i) => (
-                <div key={i} className="aspect-square rounded-2xl overflow-hidden relative border border-yaqin-border">
+                <div key={i} className="aspect-square rounded-2xl overflow-hidden relative border border-[#EAE5DC] shadow-sm">
                   <img src={url} alt="Yuklangan" className="w-full h-full object-cover" />
-                  <span className="absolute top-2 right-2 p-1 rounded-full bg-emerald-500 text-white">
-                    <Check size={14} />
+                  <span className="absolute top-2 right-2 p-1 rounded-full bg-[#FF4B6E] text-white shadow">
+                    <Check size={12} />
                   </span>
                 </div>
               ))}
 
               {uploadedPhotos.length < 6 && (
-                <label className="aspect-square rounded-2xl border-2 border-dashed border-yaqin-border hover:border-yaqin-accent bg-yaqin-surface/50 flex flex-col items-center justify-center cursor-pointer p-4 text-center">
-                  <UploadCloud size={32} className="text-yaqin-muted mb-2" />
-                  <span className="text-xs font-medium text-slate-300">Rasm qoʻshish</span>
+                <label className="aspect-square rounded-2xl border-2 border-dashed border-[#FFB8C6] hover:border-[#FF4B6E] bg-white flex flex-col items-center justify-center cursor-pointer p-4 text-center transition-colors">
+                  <UploadCloud size={28} className="text-[#FF4B6E] mb-1" />
+                  <span className="text-[11px] font-bold text-[#1E1E28]">Rasm qoʻshish</span>
+                  <span className="text-[9px] text-[#8E8B99]">Galereyadan</span>
                   <input
                     type="file"
                     accept="image/*"
@@ -419,42 +465,50 @@ export const OnboardingPage: React.FC = () => {
           </div>
         )}
 
-        {/* 7-Qadam: Profil preview */}
-        {step === 7 && (
+        {/* Step 6: Profil Preview */}
+        {step === 6 && (
           <div className="text-center animate-fade-in">
-            <div className="w-32 h-32 mx-auto rounded-3xl overflow-hidden border-2 border-yaqin-accent shadow-2xl mb-4">
+            <div className="w-32 h-32 mx-auto rounded-3xl overflow-hidden border-4 border-white shadow-xl mb-4 relative">
               <img
                 src={uploadedPhotos[0] || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80'}
                 alt="Siz"
                 className="w-full h-full object-cover"
               />
+              <div className="absolute bottom-2 right-2 w-6 h-6 rounded-full bg-[#FF4B6E] text-white flex items-center justify-center shadow">
+                <Check size={14} />
+              </div>
             </div>
-            <h2 className="text-2xl font-black mb-1">{firstName}</h2>
-            <p className="text-yaqin-muted text-sm mb-4">Profil koʻrinishi tayyor!</p>
-            <p className="text-xs text-slate-400 bg-yaqin-surface p-4 rounded-2xl border border-yaqin-border mb-6">
-              {bio || 'Yaqin orqali ajoyib insonlar bilan tanishishga tayyorman.'}
+            <h2 className="text-2xl font-black text-[#1E1E28] mb-1">
+              {firstName || 'Foydalanuvchi'}, 22
+            </h2>
+            <p className="text-xs font-semibold text-[#FF4B6E] mb-4">
+              Profilingiz 100% tayyor! ✨
             </p>
+            <div className="p-4 rounded-2xl bg-white border border-[#EAE5DC] text-xs text-[#8E8B99] shadow-sm mb-4 leading-relaxed">
+              {bio || 'Yaqin orqali samimiy va ajoyib insonlar bilan tanishishga tayyorman! 🌸'}
+            </div>
           </div>
         )}
 
         {error && (
-          <div className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs text-center font-medium">
+          <div className="mt-3 p-3 rounded-xl bg-rose-50 border border-rose-200 text-[#FF4B6E] text-xs text-center font-semibold">
             {error}
           </div>
         )}
       </div>
 
-      {/* Pastki Navigatsiya tugmasi */}
-      <div>
+      {/* Bottom Button Bar */}
+      <div className="pt-4 pb-2">
         <button
           onClick={handleNext}
           disabled={isSubmitting}
-          className="w-full py-4 rounded-2xl gold-gradient text-yaqin-bg font-bold flex items-center justify-center gap-2 shadow-lg shadow-amber-500/15 active:scale-98 transition-all disabled:opacity-50"
+          className="w-full py-4 rounded-2xl bg-[#FF4B6E] hover:bg-[#E03A5B] text-white font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-500/25 active:scale-98 transition-all disabled:opacity-50"
         >
-          <span>{step === 7 ? 'Tayyor! Tanishuvni boshlash' : 'Davom etish'}</span>
+          <span>{step === 6 ? 'Tayyor! Tanishuvni boshlash' : 'Keyingi'}</span>
           <ArrowRight size={18} />
         </button>
       </div>
     </div>
   );
 };
+

@@ -25,18 +25,25 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
-  // Swipe burilish burchagi va badge ko'rinish darajasi
-  const rotate = useTransform(x, [-200, 200], [-15, 15]);
+  const rotate = useTransform(x, [-200, 200], [-12, 12]);
   const likeOpacity = useTransform(x, [20, 100], [0, 1]);
   const skipOpacity = useTransform(x, [-20, -100], [0, 1]);
   const superLikeOpacity = useTransform(y, [-20, -100], [0, 1]);
 
-  const photos = candidate.photos.length > 0
-    ? candidate.photos
-    : [{ id: 'default', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80', isPrimary: true, sortOrder: 0 }];
+  const photos =
+    candidate.photos && candidate.photos.length > 0
+      ? candidate.photos
+      : [
+          {
+            id: 'default',
+            url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=800&q=80',
+            isPrimary: true,
+            sortOrder: 0,
+          },
+        ];
 
   const handleDragEnd = (_: any, info: any) => {
-    const threshold = 100;
+    const threshold = 80;
     if (info.offset.x > threshold) {
       haptic.impact('heavy');
       onLike();
@@ -72,7 +79,7 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.8}
       onDragEnd={handleDragEnd}
-      className="absolute inset-0 w-full h-full rounded-3xl overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing select-none bg-yaqin-surface border border-yaqin-border"
+      className="absolute inset-0 w-full h-full rounded-[28px] overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.6)] cursor-grab active:cursor-grabbing select-none bg-[#151923] border border-white/10"
     >
       {/* 1. Asosiy Fotosurat */}
       <img
@@ -81,133 +88,131 @@ export const ProfileCard: React.FC<ProfileCardProps> = ({
         className="w-full h-full object-cover pointer-events-none"
       />
 
-      {/* Rasm almashtirish sensor zonalari (chap / o'ng) */}
+      {/* Rasm almashtirish sensor zonalari */}
       <div className="absolute inset-0 flex z-10">
-        <div className="w-1/2 h-4/5" onClick={prevPhoto} />
-        <div className="w-1/2 h-4/5" onClick={nextPhoto} />
+        <div className="w-1/2 h-3/4" onClick={prevPhoto} />
+        <div className="w-1/2 h-3/4" onClick={nextPhoto} />
       </div>
 
-      {/* Stories-style foto indikatorlar */}
-      {photos.length > 1 && (
-        <div className="absolute top-3 left-3 right-3 z-20 flex gap-1.5">
-          {photos.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 flex-1 rounded-full transition-all duration-200 ${
-                i === photoIndex ? 'bg-white shadow' : 'bg-white/30'
-              }`}
-            />
-          ))}
-        </div>
-      )}
+      {/* Top Stories Pagination Dots & Badge */}
+      <div className="absolute top-3 left-4 right-4 z-20 flex flex-col gap-2 pointer-events-none">
+        {/* Pagination bars */}
+        {photos.length > 1 && (
+          <div className="flex items-center gap-1.5 w-full">
+            {photos.map((_, idx) => (
+              <div
+                key={idx}
+                className={`h-1 flex-1 rounded-full transition-all duration-300 ${
+                  idx === photoIndex ? 'bg-white shadow' : 'bg-white/30'
+                }`}
+              />
+            ))}
+          </div>
+        )}
 
-      {/* Swipe Badges (Like, Skip, Super Like) */}
+        <div className="flex items-center justify-between mt-1">
+          <div className="px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md text-[10px] font-bold text-white flex items-center gap-1 border border-white/15">
+            <span>📷</span>
+            <span>
+              {photoIndex + 1}/{photos.length}
+            </span>
+          </div>
+
+          {candidate.isBoosted && (
+            <div className="px-2.5 py-1 rounded-full bg-[#D9A441] text-[#0B0D12] text-[10px] font-black tracking-wide uppercase shadow">
+              ⚡ BOOST
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Swipe Overlay Badges */}
       <motion.div
         style={{ opacity: likeOpacity }}
-        className="absolute top-8 left-6 z-20 border-4 border-emerald-400 bg-emerald-500/20 px-4 py-1.5 rounded-2xl rotate-[-18deg] backdrop-blur-sm"
+        className="absolute top-14 left-6 z-20 border-2 border-[#FF4F79] bg-[#FF4F79]/30 px-5 py-1.5 rounded-2xl rotate-[-12deg] backdrop-blur-md shadow-lg"
       >
-        <span className="text-2xl font-black text-emerald-400 tracking-wider uppercase">LIKE</span>
+        <span className="text-2xl font-black text-white tracking-wider">LIKE ❤️</span>
       </motion.div>
 
       <motion.div
         style={{ opacity: skipOpacity }}
-        className="absolute top-8 right-6 z-20 border-4 border-rose-500 bg-rose-500/20 px-4 py-1.5 rounded-2xl rotate-[18deg] backdrop-blur-sm"
+        className="absolute top-14 right-6 z-20 border-2 border-stone-400 bg-stone-900/60 px-5 py-1.5 rounded-2xl rotate-[12deg] backdrop-blur-md shadow-lg"
       >
-        <span className="text-2xl font-black text-rose-500 tracking-wider uppercase">SKIP</span>
+        <span className="text-2xl font-black text-stone-300 tracking-wider">PASS ✕</span>
       </motion.div>
 
       <motion.div
         style={{ opacity: superLikeOpacity }}
-        className="absolute top-1/4 left-1/2 -translate-x-1/2 z-20 border-4 border-sky-400 bg-sky-500/20 px-5 py-2 rounded-2xl backdrop-blur-sm"
+        className="absolute top-1/3 left-1/2 -translate-x-1/2 z-20 border-2 border-[#D9A441] bg-[#D9A441]/30 px-6 py-2 rounded-2xl backdrop-blur-md shadow-xl"
       >
-        <span className="text-2xl font-black text-sky-400 tracking-wider uppercase">SUPER LIKE</span>
+        <span className="text-xl font-black text-white tracking-wider">SUPER LIKE ⭐</span>
       </motion.div>
 
-      {/* Gradient qora qoplama (pastki ma'lumotlar uchun) */}
-      <div className="absolute inset-0 bg-gradient-to-t from-yaqin-bg via-yaqin-bg/40 to-transparent pointer-events-none" />
+      {/* Bottom Gradient Overlay on photo */}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0B0D12] via-[#0B0D12]/40 to-transparent pointer-events-none" />
 
       {/* Profil Ma'lumotlari */}
-      <div className="absolute bottom-20 left-0 right-0 p-5 z-20 pointer-events-none">
-        <div className="flex items-center gap-2 mb-1">
-          <h2 className="text-3xl font-extrabold text-white tracking-tight">
-            {candidate.firstName}, {candidate.age}
-          </h2>
+      <div className="absolute bottom-0 left-0 right-0 p-5 pb-5 z-20 pointer-events-none text-white">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-black tracking-tight text-white drop-shadow">
+              {candidate.firstName}, {candidate.age}
+            </h2>
+            {candidate.isVerified && (
+              <span className="text-sky-400 text-sm font-bold bg-sky-400/20 px-1.5 py-0.5 rounded-full border border-sky-400/40">
+                ✓
+              </span>
+            )}
+            {candidate.isPremium && (
+              <span className="p-1 rounded-full bg-[#D9A441] text-[#0B0D12] shadow-sm">
+                <Sparkles size={12} />
+              </span>
+            )}
+          </div>
 
-          {candidate.isVerified && (
-            <CheckCircle2 size={22} className="text-sky-400 fill-sky-400/20" />
-          )}
-          {candidate.isPremium && (
-            <span className="p-1 rounded-full gold-gradient text-yaqin-bg">
-              <Sparkles size={14} />
-            </span>
-          )}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              haptic.selection();
+              onOpenDetails();
+            }}
+            className="pointer-events-auto p-2 rounded-full bg-white/15 hover:bg-white/25 backdrop-blur-md text-white transition-all active:scale-90"
+          >
+            <Info size={16} />
+          </button>
         </div>
 
-        <div className="flex items-center gap-1.5 text-yaqin-muted text-sm mb-2 font-medium">
-          <MapPin size={16} className="text-rose-400" />
+        <div className="flex items-center gap-1.5 text-stone-300 text-xs mb-2 font-medium">
+          <MapPin size={13} className="text-[#FF4F79]" />
           <span>{candidate.city}</span>
-          {candidate.isBoosted && (
-            <span className="ml-2 text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
-              ⚡ TOP
-            </span>
-          )}
         </div>
 
         {candidate.bio && (
-          <p className="text-slate-200 text-sm line-clamp-2 leading-relaxed mb-3">
-            {candidate.bio}
+          <p className="text-stone-200 text-xs line-clamp-2 leading-relaxed mb-3 font-normal">
+            “{candidate.bio}”
           </p>
         )}
 
-        {/* Tafsilot tugmasi */}
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            haptic.impact('light');
-            onOpenDetails();
-          }}
-          className="pointer-events-auto flex items-center gap-1 text-xs text-slate-300 bg-white/10 hover:bg-white/20 backdrop-blur-md px-3 py-1.5 rounded-full transition-all border border-white/10"
-        >
-          <Info size={14} />
-          <span>Batafsil maʼlumot</span>
-        </button>
-      </div>
-
-      {/* Pastki Harakat Tugmalari (Actions) */}
-      <div className="absolute bottom-4 left-0 right-0 px-6 flex items-center justify-around z-30">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            haptic.impact('medium');
-            onSkip();
-          }}
-          className="w-14 h-14 rounded-full bg-yaqin-surface/90 border border-rose-500/30 text-rose-500 flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
-        >
-          <X size={28} />
-        </button>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            haptic.impact('heavy');
-            onSuperLike();
-          }}
-          className="w-12 h-12 rounded-full bg-yaqin-surface/90 border border-sky-400/30 text-sky-400 flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
-        >
-          <Star size={24} className="fill-sky-400" />
-        </button>
-
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            haptic.impact('heavy');
-            onLike();
-          }}
-          className="w-14 h-14 rounded-full bg-yaqin-surface/90 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-all"
-        >
-          <Heart size={28} className="fill-emerald-400" />
-        </button>
+        {/* Interest Chips */}
+        {candidate.interests && candidate.interests.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 pointer-events-auto">
+            {candidate.interests.slice(0, 3).map((it) => (
+              <span
+                key={it.id}
+                className="px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[11px] font-semibold text-white shadow-sm"
+              >
+                {it.name}
+              </span>
+            ))}
+            {candidate.interests.length > 3 && (
+              <span className="px-2.5 py-1 rounded-full bg-white/10 text-[10px] font-bold text-white/80">
+                +{candidate.interests.length - 3}
+              </span>
+            )}
+          </div>
+        )}
       </div>
     </motion.div>
   );
 };
+

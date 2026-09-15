@@ -24,6 +24,7 @@ import { ChatController } from './controllers/chatController.js';
 import { PremiumController } from './controllers/premiumController.js';
 import { SafetyController } from './controllers/safetyController.js';
 import { AdminController } from './controllers/adminController.js';
+import { VideoController } from './controllers/videoController.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -124,7 +125,18 @@ api.get('/users/blocked', requireAuth, SafetyController.getBlockedUsers);
 api.post('/users/:id/report', requireAuth, SafetyController.reportUser);
 api.post('/verification/request', requireAuth, upload.single('selfie'), SafetyController.submitVerification);
 
-// 10. Admin Routes (RBAC bilan himoyalangan)
+// 10. Video Tanishuv (Reels) Routes
+api.get('/videos/feed', VideoController.getFeed);
+api.post('/videos', requireAuth, upload.single('video'), VideoController.uploadVideo);
+api.post('/videos/:id/like', requireAuth, VideoController.toggleLike);
+api.post('/videos/:id/super-like', requireAuth, VideoController.superLike);
+api.post('/videos/:id/view', VideoController.recordView);
+api.get('/videos/:id/comments', VideoController.getComments);
+api.post('/videos/:id/comments', requireAuth, VideoController.addComment);
+api.get('/users/:userId/videos', VideoController.getUserVideos);
+api.delete('/videos/:id', requireAuth, VideoController.deleteVideo);
+
+// 11. Admin Routes (RBAC bilan himoyalangan)
 api.get('/admin/stats', requireAdmin('ADMIN'), AdminController.getDashboardStats);
 api.get('/admin/users', requireAdmin('ADMIN'), AdminController.getUsers);
 api.post('/admin/users/:id/ban', requireAdmin('ADMIN'), AdminController.toggleBanUser);

@@ -63,14 +63,35 @@ export class DiscoverController {
         excludedUserIds: excludedIds,
       };
 
-      // 4. Barcha nomzod profillarni bazadan olish (rasmlar va qiziqishlar bilan)
-      const rawCandidates = await prisma.user.findMany({
-        where: {
-          id: { notIn: Array.from(new Set([...excludedIds, ...blockedIds])) },
-          isBanned: false,
-          isBlocked: false,
-          photos: { some: {} }, // kamida 1 ta fotosurati borlar
-        },
+      // 4. Query filtrlari
+      const cityIdFilter = req.query.cityId as string;
+      const genderFilter = req.query.gender as string;
+      const verifiedOnly = req.query.verifiedOnly === 'true';
+      const minAge = parseInt(req.query.minAge as string) || 18;
+      const maxAge = parseInt(req.query.maxAge as string) || 80;
+
+      const whereClause: any = {
+        id: { notIn: Array.from(new Set([...excludedIds, ...blockedIds])) },
+        isBanned: false,
+        isBlocked: false,
+        photos: { some: {} }, // kamida 1 ta fotosurati borlar
+      };
+
+      if (cityIdFilter) whereClause.cityId = cityIdFilter;
+      if (genderFilter && ['MALE', 'FEMALE'].includes(genderFilter)) whereClause.gender = genderFilter;
+      if (verifiedOnly) whereClause.isVerified = true;
+      if (minAge > 18 || maxAge < 80) {
+        const now = new Date();
+        const maxBirth = new Date(now.getFullYear() - minAge, now.getMonth(), now.getDate());
+        const minBirth = new Date(now.getFullYear() - maxAge - 1, now.getMonth(), now.getDate());
+        whereClause.birthDate = {
+          gte: minBirth,
+          lte: maxBirth,
+        };
+      }
+
+      let rawCandidates = await prisma.user.findMany({
+        where: whereClause,
         include: {
           city: true,
           photos: { orderBy: { sortOrder: 'asc' } },
@@ -82,6 +103,33 @@ export class DiscoverController {
           },
         },
       });
+
+      // Dev mode fallback: agar hamma profillar like/skip qilingan bo'lsa, test profillarni qayta ko'rsatish
+      if (rawCandidates.length === 0 && process.env.NODE_ENV !== 'production') {
+        const devWhere: any = {
+          id: { not: currentUser.id },
+          isBanned: false,
+          isBlocked: false,
+          photos: { some: {} },
+        };
+        if (cityIdFilter) devWhere.cityId = cityIdFilter;
+        if (genderFilter && ['MALE', 'FEMALE'].includes(genderFilter)) devWhere.gender = genderFilter;
+        if (verifiedOnly) devWhere.isVerified = true;
+
+        rawCandidates = await prisma.user.findMany({
+          where: devWhere,
+          include: {
+            city: true,
+            photos: { orderBy: { sortOrder: 'asc' } },
+            userInterests: { include: { interest: true } },
+            boosts: {
+              where: { expiresAt: { gt: new Date() } },
+              orderBy: { expiresAt: 'desc' },
+              take: 1,
+            },
+          },
+        });
+      }
 
       // 5. Scoring profil formatiga o'tkazish
       const candidateProfiles: CandidateScoringProfile[] = rawCandidates.map((c) => ({

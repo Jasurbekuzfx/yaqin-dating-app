@@ -24,7 +24,7 @@ export class VideoController {
             OR: [{ blockerId: userId }, { blockedId: userId }],
           },
         });
-        blockedUserIds = blocks.map((b) => (b.blockerId === userId ? b.blockedId : b.blockerId));
+        blockedUserIds = blocks.map((b: any) => (b.blockerId === userId ? b.blockedId : b.blockerId));
         blockedUserIds.push(userId); // o'zining videosi feedga chiqmasligi uchun
       }
 
@@ -51,10 +51,10 @@ export class VideoController {
         },
       });
 
-      const formatted = videos.map((v) => ({
+      const formatted = videos.map((v: any) => ({
         id: v.id,
         url: v.url,
-        thumbnailUrl: v.thumbnailUrl || v.user.photos[0]?.url || '',
+        thumbnailUrl: v.thumbnailUrl || v.user.photos?.[0]?.url || '',
         caption: v.caption,
         duration: v.duration,
         width: v.width,
@@ -67,13 +67,13 @@ export class VideoController {
         user: {
           id: v.user.id,
           firstName: v.user.firstName,
-          age: new Date().getFullYear() - new Date(v.user.birthDate).getFullYear(),
+          age: v.user.birthDate ? new Date().getFullYear() - new Date(v.user.birthDate).getFullYear() : 20,
           city: v.user.city?.name || 'Oʻzbekiston',
-          avatarUrl: v.user.photos[0]?.url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
+          avatarUrl: v.user.photos?.[0]?.url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
           isVerified: v.user.isVerified,
           isPremium: v.user.isPremium,
           bio: v.user.bio,
-          interests: v.user.userInterests.map((ui) => ui.interest.name),
+          interests: (v.user.userInterests || []).map((ui: any) => ui.interest?.name || ''),
         },
       }));
 
@@ -375,14 +375,14 @@ export class VideoController {
         },
       });
 
-      const formatted = comments.map((c) => ({
+      const formatted = comments.map((c: any) => ({
         id: c.id,
         content: c.content,
         createdAt: c.createdAt,
         user: {
-          id: c.user.id,
-          firstName: c.user.firstName,
-          avatarUrl: c.user.photos[0]?.url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80',
+          id: c.user?.id,
+          firstName: c.user?.firstName,
+          avatarUrl: c.user?.photos?.[0]?.url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80',
         },
       }));
 

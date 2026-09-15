@@ -37,18 +37,18 @@ export class DiscoverController {
 
       // 2. Chiqarib tashlanishi shart bo'lgan ID lar to'plami
       const blockedIds = new Set<string>();
-      currentUser.blockedUsers.forEach((b) => blockedIds.add(b.blockedId));
-      currentUser.blockedByUsers.forEach((b) => blockedIds.add(b.blockerId));
+      currentUser.blockedUsers.forEach((b: any) => blockedIds.add(b.blockedId));
+      currentUser.blockedByUsers.forEach((b: any) => blockedIds.add(b.blockerId));
 
       const excludedIds = new Set<string>();
       excludedIds.add(currentUser.id); // o'zi
 
       // Allaqachon like bosilganlar
-      currentUser.sentLikes.forEach((l) => excludedIds.add(l.toUserId));
+      currentUser.sentLikes.forEach((l: any) => excludedIds.add(l.toUserId));
 
       // Allaqachon match bo'lganlar
-      currentUser.matchesAsUserA.forEach((m) => excludedIds.add(m.userBId));
-      currentUser.matchesAsUserB.forEach((m) => excludedIds.add(m.userAId));
+      currentUser.matchesAsUserA.forEach((m: any) => excludedIds.add(m.userBId));
+      currentUser.matchesAsUserB.forEach((m: any) => excludedIds.add(m.userAId));
 
       // 3. User preferensiyalarini tayyorlash
       const userPrefs: UserPreferences = {
@@ -58,7 +58,7 @@ export class DiscoverController {
         cityId: currentUser.cityId,
         region: currentUser.city?.region,
         birthDate: currentUser.birthDate,
-        interestIds: currentUser.userInterests.map((ui) => ui.interestId),
+        interestIds: currentUser.userInterests.map((ui: any) => ui.interestId),
         blockedUserIds: blockedIds,
         excludedUserIds: excludedIds,
       };
@@ -132,7 +132,7 @@ export class DiscoverController {
       }
 
       // 5. Scoring profil formatiga o'tkazish
-      const candidateProfiles: CandidateScoringProfile[] = rawCandidates.map((c) => ({
+      const candidateProfiles: CandidateScoringProfile[] = rawCandidates.map((c: any) => ({
         id: c.id,
         birthDate: c.birthDate,
         gender: c.gender as 'MALE' | 'FEMALE',
@@ -143,10 +143,10 @@ export class DiscoverController {
         isPremium: c.isPremium,
         isBlocked: c.isBlocked,
         isBanned: c.isBanned,
-        activeBoostUntil: c.boosts[0] ? c.boosts[0].expiresAt : null,
+        activeBoostUntil: c.boosts?.[0] ? c.boosts[0].expiresAt : null,
         lastActiveAt: c.lastActiveAt,
-        photosCount: c.photos.length,
-        interestIds: c.userInterests.map((ui) => ui.interestId),
+        photosCount: c.photos?.length || 0,
+        interestIds: (c.userInterests || []).map((ui: any) => ui.interestId),
       }));
 
       // 6. Deterministic scoring algoritmi orqali saralash
@@ -154,12 +154,12 @@ export class DiscoverController {
       const topCandidateIds = ranked.slice(0, limit).map((r) => r.candidateId);
 
       // 7. Yakuniy natijani DiscoverCard formatida qaytarish
-      const candidateMap = new Map(rawCandidates.map((c) => [c.id, c]));
+      const candidateMap = new Map(rawCandidates.map((c: any) => [c.id, c]));
       const scoreMap = new Map(ranked.map((r) => [r.candidateId, r.score]));
 
       const results = topCandidateIds
         .map((id) => {
-          const c = candidateMap.get(id);
+          const c: any = candidateMap.get(id);
           if (!c) return null;
           return {
             id: c.id,
@@ -170,19 +170,19 @@ export class DiscoverController {
             bio: c.bio,
             isVerified: c.isVerified,
             isPremium: c.isPremium,
-            isBoosted: !!c.boosts[0],
+            isBoosted: !!c.boosts?.[0],
             matchScore: scoreMap.get(c.id) || 100,
-            photos: c.photos.map((p) => ({
+            photos: (c.photos || []).map((p: any) => ({
               id: p.id,
               url: p.url,
               sortOrder: p.sortOrder,
               isPrimary: p.isPrimary,
             })),
-            interests: c.userInterests.map((ui) => ({
-              id: ui.interest.id,
-              name: ui.interest.name,
-              category: ui.interest.category,
-              icon: ui.interest.icon,
+            interests: (c.userInterests || []).map((ui: any) => ({
+              id: ui.interest?.id,
+              name: ui.interest?.name,
+              category: ui.interest?.category,
+              icon: ui.interest?.icon,
             })),
           };
         })

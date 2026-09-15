@@ -35,7 +35,7 @@ export class MatchController {
         },
       });
 
-      const formatted = matches.map((m) => {
+      const formatted = matches.map((m: any) => {
         const partner = m.userAId === userId ? m.userB : m.userA;
         const lastMsg = m.messages[0] || null;
 

@@ -207,7 +207,7 @@ export class LikeController {
 
       const totalCount = receivedLikes.length;
 
-      const formatted = receivedLikes.map((l) => {
+      const formatted = receivedLikes.map((l: any) => {
         const u = l.fromUser;
         const photoUrl = u.photos[0]?.url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80';
 

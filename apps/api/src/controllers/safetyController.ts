@@ -79,7 +79,7 @@ export class SafetyController {
 
       res.json({
         success: true,
-        blockedUsers: blockedList.map((b) => ({
+        blockedUsers: blockedList.map((b: any) => ({
           id: b.blocked.id,
           firstName: b.blocked.firstName,
           lastName: b.blocked.lastName,

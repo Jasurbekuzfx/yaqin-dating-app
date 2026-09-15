@@ -13,7 +13,7 @@
     "dev:web": "npm run dev --workspace=@yaqin/web",
     "dev:bot": "npm run dev --workspace=@yaqin/bot",
     "dev:admin": "npm run dev --workspace=@yaqin/admin",
-    "build": "npm run build --workspaces --if-present",
+    "build": "npm run db:generate && npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "db:generate": "npm run generate --workspace=@yaqin/database",

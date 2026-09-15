@@ -205,6 +205,19 @@ bot.on('message:successful_payment', async (ctx) => {
   }
 });
 
+import http from 'http';
+
+// Render Web Service uchun port tinglash (Render tekshiruvi uchun)
+const port = process.env.PORT || 10000;
+const healthServer = http.createServer((_req, res) => {
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ status: 'ok', service: 'Yaqin Telegram Bot' }));
+});
+
+healthServer.listen(Number(port), '0.0.0.0', () => {
+  console.log(`🌐 Bot Health Server port ${port} da tinglamoqda (Render Web Service)`);
+});
+
 // Faqat token haqiqiy bo'lganda pollingni boshlash
 if (token && !token.startsWith('dev_') && token !== 'fake_token') {
   bot.start({
